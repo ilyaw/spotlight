@@ -1,5 +1,6 @@
 import { forwardRef } from "react";
 import { Search } from "lucide-react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { RgbBorderWrapper } from "./RgbBorderWrapper";
 
 type SearchInputProps = {
@@ -10,6 +11,11 @@ type SearchInputProps = {
 
 export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
   function SearchInput({ value, onChange, onKeyDown }, ref) {
+    const handleMouseDown = (event: React.MouseEvent<HTMLInputElement>) => {
+      if (event.button !== 0) return;
+      void getCurrentWindow().startDragging();
+    };
+
     return (
       <RgbBorderWrapper
         variant="search-row"
@@ -23,6 +29,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
             value={value}
             onChange={(event) => onChange(event.target.value)}
             onKeyDown={onKeyDown}
+            onMouseDown={handleMouseDown}
             placeholder="Search apps and commands…"
             className="w-full bg-transparent text-lg text-zinc-100 placeholder:text-zinc-500 outline-none"
             autoComplete="off"

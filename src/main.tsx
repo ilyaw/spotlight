@@ -3,13 +3,16 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import { RgbEffectProvider } from "./context/RgbEffectContext";
 import { QuickLaunchProvider } from "./context/QuickLaunchContext";
+import { HotkeyProvider } from "./context/HotkeyContext";
 import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <RgbEffectProvider>
       <QuickLaunchProvider>
-        <App />
+        <HotkeyProvider>
+          <App />
+        </HotkeyProvider>
       </QuickLaunchProvider>
     </RgbEffectProvider>
   </React.StrictMode>,

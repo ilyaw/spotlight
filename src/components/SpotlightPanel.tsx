@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Rocket, Settings2 } from "lucide-react";
+import { Keyboard, Rocket, Settings2 } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/core";
 import { SearchInput } from "./SearchInput";
@@ -8,6 +8,7 @@ import { ResultsList } from "./ResultsList";
 import { RgbBorderWrapper } from "./RgbBorderWrapper";
 import { RgbSettingsPanel } from "./RgbSettingsPanel";
 import { QuickLaunchSettingsPanel } from "./QuickLaunchSettingsPanel";
+import { HotkeySettingsPanel } from "./HotkeySettingsPanel";
 import { useSpotlightSearch } from "../hooks/useSpotlightSearch";
 import { useWindowAutoHeight } from "../hooks/useWindowAutoHeight";
 import { useQuickLaunch } from "../context/QuickLaunchContext";
@@ -15,10 +16,18 @@ import { isMacPlatform } from "../lib/platform";
 import type { SpotlightItem } from "../data/mockItems";
 import type { QuickLaunchKey } from "../types/quickLaunch";
 
+type SettingsTab = "rgb" | "quickLaunch" | "hotkey" | null;
+
 export function SpotlightPanel() {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [quickLaunchOpen, setQuickLaunchOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<SettingsTab>(null);
+  const settingsOpen = activeTab === "rgb";
+  const quickLaunchOpen = activeTab === "quickLaunch";
+  const hotkeyOpen = activeTab === "hotkey";
+
+  const toggleTab = useCallback((tab: Exclude<SettingsTab, null>) => {
+    setActiveTab((prev) => (prev === tab ? null : tab));
+  }, []);
 
   const {
     query,
@@ -37,6 +46,7 @@ export function SpotlightPanel() {
   const panelRef = useWindowAutoHeight([
     settingsOpen,
     quickLaunchOpen,
+    hotkeyOpen,
     results.length,
     query,
   ]);
@@ -56,6 +66,7 @@ export function SpotlightPanel() {
         isLaunchModifier &&
         !settingsOpen &&
         !quickLaunchOpen &&
+        !hotkeyOpen &&
         /^[1-9]$/.test(event.key)
       ) {
         event.preventDefault();
@@ -92,6 +103,7 @@ export function SpotlightPanel() {
     [
       settingsOpen,
       quickLaunchOpen,
+      hotkeyOpen,
       getSlot,
       selectNext,
       selectPrevious,
@@ -120,7 +132,7 @@ export function SpotlightPanel() {
           onKeyDown={handleKeyDown}
         />
 
-        {!settingsOpen && !quickLaunchOpen && (
+        {!settingsOpen && !quickLaunchOpen && !hotkeyOpen && (
           <ResultsList
             results={results}
             selectedIndex={selectedIndex}
@@ -131,19 +143,14 @@ export function SpotlightPanel() {
 
         <RgbSettingsPanel open={settingsOpen} />
         <QuickLaunchSettingsPanel open={quickLaunchOpen} />
+        <HotkeySettingsPanel open={hotkeyOpen} />
 
         <div className="flex items-center justify-between border-t border-white/10 px-5 py-2.5 text-xs text-zinc-500">
           <div className="flex items-center gap-2">
             <span>Spotlight</span>
             <button
               type="button"
-              onClick={() =>
-                setQuickLaunchOpen((prev) => {
-                  const next = !prev;
-                  if (next) setSettingsOpen(false);
-                  return next;
-                })
-              }
+              onClick={() => toggleTab("quickLaunch")}
               className={`rounded p-1 transition-colors ${
                 quickLaunchOpen
                   ? "bg-white/15 text-zinc-200"
@@ -156,13 +163,20 @@ export function SpotlightPanel() {
             </button>
             <button
               type="button"
-              onClick={() =>
-                setSettingsOpen((prev) => {
-                  const next = !prev;
-                  if (next) setQuickLaunchOpen(false);
-                  return next;
-                })
-              }
+              onClick={() => toggleTab("hotkey")}
+              className={`rounded p-1 transition-colors ${
+                hotkeyOpen
+                  ? "bg-white/15 text-zinc-200"
+                  : "text-zinc-500 hover:bg-white/10 hover:text-zinc-300"
+              }`}
+              aria-label="Hotkey settings"
+              aria-expanded={hotkeyOpen}
+            >
+              <Keyboard className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleTab("rgb")}
               className={`rounded p-1 transition-colors ${
                 settingsOpen
                   ? "bg-white/15 text-zinc-200"

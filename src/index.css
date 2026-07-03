@@ -85,6 +85,14 @@ body {
   --rgb-color-2: #ff00aa;
   --rgb-color-3: #ffe600;
   --gradient-angle: 135deg;
+  /*
+   * Forces its own GPU compositing layer. Without this, WKWebView on macOS
+   * sometimes fails to paint the bottom edge of the animated gradient on
+   * first render (inside a Framer Motion `transform`-animated ancestor),
+   * only fixing itself once something else forces a repaint/reflow.
+   */
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .rgb-border-wrapper--full-panel {
@@ -111,6 +119,8 @@ body {
   inset: 0;
   z-index: 0;
   pointer-events: none;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .rgb-border-glow {
