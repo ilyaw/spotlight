@@ -1,15 +1,185 @@
 @import "tailwindcss";
 
+@theme {
+  --animate-rgb-spin: rgb-spin var(--rgb-duration, 3s) linear infinite;
+  --animate-rgb-sweep: rgb-sweep var(--rgb-duration, 4s) linear infinite;
+  --animate-neon-pulse: neon-pulse var(--rgb-duration, 2s) ease-in-out infinite;
+}
+
+@property --gradient-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes rgb-spin {
+  to {
+    --gradient-angle: 360deg;
+  }
+}
+
+@keyframes rgb-sweep {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+@keyframes neon-pulse {
+  0%,
+  100% {
+    filter: brightness(1) saturate(1);
+  }
+  50% {
+    filter: brightness(1.3) saturate(1.4);
+  }
+}
+
 html,
-body,
+body {
+  background: transparent;
+  margin: 0;
+  padding: 0;
+  overflow: hidden !important;
+  overscroll-behavior: none;
+  height: auto;
+}
+
 #root {
   background: transparent;
-  height: 100%;
   overflow: hidden;
+  height: auto;
+}
+
+/* Hide scrollbars everywhere in the webview */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+#root::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+* {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI",
     Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+/* ── RGB border wrapper ── */
+
+.rgb-border-wrapper {
+  position: relative;
+  --rgb-thickness: 2px;
+  --rgb-duration: 3s;
+  --rgb-color-1: #00f0ff;
+  --rgb-color-2: #ff00aa;
+  --rgb-color-3: #ffe600;
+  --gradient-angle: 135deg;
+}
+
+.rgb-border-wrapper--full-panel {
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.rgb-border-wrapper--search-row {
+  border-radius: 0;
+}
+
+.rgb-border-wrapper--search-row .rgb-border-gradient {
+  inset: auto 0 0 0;
+  height: var(--rgb-thickness);
+}
+
+.rgb-border-wrapper--search-row .rgb-border-inner {
+  margin: 0;
+  margin-bottom: var(--rgb-thickness);
+}
+
+.rgb-border-gradient {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.rgb-border-glow {
+  position: absolute;
+  inset: calc(var(--rgb-thickness) * -2);
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.rgb-border-inner {
+  position: relative;
+  z-index: 1;
+  margin: var(--rgb-thickness);
+  background: rgb(24 24 27);
+}
+
+.rgb-border-wrapper--full-panel .rgb-border-inner {
+  border-radius: calc(1rem - var(--rgb-thickness));
+  overflow: hidden;
+}
+
+.rgb-border-wrapper--search-row .rgb-border-inner {
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
+}
+
+.rgb-border-wrapper--full-panel {
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.5);
+}
+
+/* ── Preset: Cyberpunk (conic spin) ── */
+
+.rgb-preset-cyberpunk .rgb-border-gradient {
+  background: conic-gradient(
+    from var(--gradient-angle),
+    var(--rgb-color-1),
+    var(--rgb-color-2),
+    var(--rgb-color-3),
+    var(--rgb-color-1)
+  );
+  animation: rgb-spin var(--rgb-duration) linear infinite;
+}
+
+/* ── Preset: Rainbow Wave (linear sweep) ── */
+
+.rgb-preset-rainbow-wave .rgb-border-gradient {
+  background: linear-gradient(
+    var(--gradient-angle),
+    var(--rgb-color-1),
+    var(--rgb-color-2),
+    var(--rgb-color-3),
+    var(--rgb-color-1)
+  );
+  background-size: 200% 200%;
+  animation: rgb-sweep var(--rgb-duration) linear infinite;
+}
+
+/* ── Preset: Neon Pulse (conic + CSS pulse) ── */
+
+.rgb-preset-neon-pulse .rgb-border-gradient {
+  background: conic-gradient(
+    from var(--gradient-angle),
+    var(--rgb-color-1),
+    var(--rgb-color-2),
+    var(--rgb-color-3),
+    var(--rgb-color-1)
+  );
+  animation: rgb-spin var(--rgb-duration) linear infinite,
+    neon-pulse var(--rgb-duration) ease-in-out infinite;
 }

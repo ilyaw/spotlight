@@ -24,7 +24,7 @@ export function ResultsList({
   }
 
   return (
-    <ul className="max-h-[240px] overflow-y-auto py-2">
+    <ul className="py-2">
       <AnimatePresence mode="popLayout">
         {results.map((item, index) => {
           const Icon = item.icon;

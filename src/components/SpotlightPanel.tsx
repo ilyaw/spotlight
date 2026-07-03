@@ -1,13 +1,19 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { Settings2 } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { SearchInput } from "./SearchInput";
 import { ResultsList } from "./ResultsList";
+import { RgbBorderWrapper } from "./RgbBorderWrapper";
+import { RgbSettingsPanel } from "./RgbSettingsPanel";
 import { useSpotlightSearch } from "../hooks/useSpotlightSearch";
+import { useWindowAutoHeight } from "../hooks/useWindowAutoHeight";
 import type { SpotlightItem } from "../data/mockItems";
 
 export function SpotlightPanel() {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
   const {
     query,
     setQuery,
@@ -18,6 +24,8 @@ export function SpotlightPanel() {
     selectPrevious,
     getSelectedItem,
   } = useSpotlightSearch();
+
+  const panelRef = useWindowAutoHeight([settingsOpen, results.length, query]);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -55,48 +63,74 @@ export function SpotlightPanel() {
 
   return (
     <motion.div
+      ref={panelRef}
       initial={{ opacity: 0, scale: 0.96, y: -8 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
-      className="w-full max-w-[680px] overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/70 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] backdrop-blur-2xl"
+      className="w-full max-w-[680px]"
     >
-      <SearchInput
-        ref={inputRef}
-        value={query}
-        onChange={setQuery}
-        onKeyDown={handleKeyDown}
-      />
+      <RgbBorderWrapper
+        variant="full-panel"
+        className="w-full"
+        fallbackClassName="overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]"
+      >
+        <SearchInput
+          ref={inputRef}
+          value={query}
+          onChange={setQuery}
+          onKeyDown={handleKeyDown}
+        />
 
-      <ResultsList
-        results={results}
-        selectedIndex={selectedIndex}
-        onSelect={handleSelect}
-        onHover={setSelectedIndex}
-      />
+        {!settingsOpen && (
+          <ResultsList
+            results={results}
+            selectedIndex={selectedIndex}
+            onSelect={handleSelect}
+            onHover={setSelectedIndex}
+          />
+        )}
 
-      <div className="flex items-center justify-between border-t border-white/10 px-5 py-2.5 text-xs text-zinc-500">
-        <span>Spotlight</span>
-        <div className="flex items-center gap-3">
-          <span>
-            <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400">
-              ↑↓
-            </kbd>{" "}
-            navigate
-          </span>
-          <span>
-            <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400">
-              ↵
-            </kbd>{" "}
-            open
-          </span>
-          <span>
-            <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400">
-              esc
-            </kbd>{" "}
-            close
-          </span>
+        <RgbSettingsPanel open={settingsOpen} />
+
+        <div className="flex items-center justify-between border-t border-white/10 px-5 py-2.5 text-xs text-zinc-500">
+          <div className="flex items-center gap-2">
+            <span>Spotlight</span>
+            <button
+              type="button"
+              onClick={() => setSettingsOpen((prev) => !prev)}
+              className={`rounded p-1 transition-colors ${
+                settingsOpen
+                  ? "bg-white/15 text-zinc-200"
+                  : "text-zinc-500 hover:bg-white/10 hover:text-zinc-300"
+              }`}
+              aria-label="RGB settings"
+              aria-expanded={settingsOpen}
+            >
+              <Settings2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="flex items-center gap-3">
+            <span>
+              <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400">
+                ↑↓
+              </kbd>{" "}
+              navigate
+            </span>
+            <span>
+              <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400">
+                ↵
+              </kbd>{" "}
+              open
+            </span>
+            <span>
+              <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400">
+                esc
+              </kbd>{" "}
+              close
+            </span>
+          </div>
         </div>
-      </div>
+      </RgbBorderWrapper>
     </motion.div>
   );
 }
