@@ -1,18 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Settings2 } from "lucide-react";
+import { Rocket, Settings2 } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { invoke } from "@tauri-apps/api/core";
 import { SearchInput } from "./SearchInput";
 import { ResultsList } from "./ResultsList";
 import { RgbBorderWrapper } from "./RgbBorderWrapper";
 import { RgbSettingsPanel } from "./RgbSettingsPanel";
+import { QuickLaunchSettingsPanel } from "./QuickLaunchSettingsPanel";
 import { useSpotlightSearch } from "../hooks/useSpotlightSearch";
 import { useWindowAutoHeight } from "../hooks/useWindowAutoHeight";
+import { useQuickLaunch } from "../context/QuickLaunchContext";
+import { isMacPlatform } from "../lib/platform";
 import type { SpotlightItem } from "../data/mockItems";
+import type { QuickLaunchKey } from "../types/quickLaunch";
 
 export function SpotlightPanel() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [quickLaunchOpen, setQuickLaunchOpen] = useState(false);
 
   const {
     query,
@@ -25,7 +31,15 @@ export function SpotlightPanel() {
     getSelectedItem,
   } = useSpotlightSearch();
 
-  const panelRef = useWindowAutoHeight([settingsOpen, results.length, query]);
+  const { getSlot } = useQuickLaunch();
+  const modifierLabel = isMacPlatform() ? "⌘" : "Ctrl";
+
+  const panelRef = useWindowAutoHeight([
+    settingsOpen,
+    quickLaunchOpen,
+    results.length,
+    query,
+  ]);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -37,6 +51,23 @@ export function SpotlightPanel() {
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLInputElement>) => {
+      const isLaunchModifier = event.ctrlKey || event.metaKey;
+      if (
+        isLaunchModifier &&
+        !settingsOpen &&
+        !quickLaunchOpen &&
+        /^[1-9]$/.test(event.key)
+      ) {
+        event.preventDefault();
+        const slot = getSlot(event.key as QuickLaunchKey);
+        if (slot.path) {
+          void invoke("launch_app", { path: slot.path })
+            .then(() => getCurrentWindow().hide())
+            .catch((error) => console.error("Failed to launch app:", error));
+        }
+        return;
+      }
+
       switch (event.key) {
         case "ArrowDown":
           event.preventDefault();
@@ -58,7 +89,15 @@ export function SpotlightPanel() {
           break;
       }
     },
-    [selectNext, selectPrevious, getSelectedItem, handleSelect],
+    [
+      settingsOpen,
+      quickLaunchOpen,
+      getSlot,
+      selectNext,
+      selectPrevious,
+      getSelectedItem,
+      handleSelect,
+    ],
   );
 
   return (
@@ -81,7 +120,7 @@ export function SpotlightPanel() {
           onKeyDown={handleKeyDown}
         />
 
-        {!settingsOpen && (
+        {!settingsOpen && !quickLaunchOpen && (
           <ResultsList
             results={results}
             selectedIndex={selectedIndex}
@@ -91,13 +130,39 @@ export function SpotlightPanel() {
         )}
 
         <RgbSettingsPanel open={settingsOpen} />
+        <QuickLaunchSettingsPanel open={quickLaunchOpen} />
 
         <div className="flex items-center justify-between border-t border-white/10 px-5 py-2.5 text-xs text-zinc-500">
           <div className="flex items-center gap-2">
             <span>Spotlight</span>
             <button
               type="button"
-              onClick={() => setSettingsOpen((prev) => !prev)}
+              onClick={() =>
+                setQuickLaunchOpen((prev) => {
+                  const next = !prev;
+                  if (next) setSettingsOpen(false);
+                  return next;
+                })
+              }
+              className={`rounded p-1 transition-colors ${
+                quickLaunchOpen
+                  ? "bg-white/15 text-zinc-200"
+                  : "text-zinc-500 hover:bg-white/10 hover:text-zinc-300"
+              }`}
+              aria-label="Quick launch settings"
+              aria-expanded={quickLaunchOpen}
+            >
+              <Rocket className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setSettingsOpen((prev) => {
+                  const next = !prev;
+                  if (next) setQuickLaunchOpen(false);
+                  return next;
+                })
+              }
               className={`rounded p-1 transition-colors ${
                 settingsOpen
                   ? "bg-white/15 text-zinc-200"
@@ -121,6 +186,12 @@ export function SpotlightPanel() {
                 ↵
               </kbd>{" "}
               open
+            </span>
+            <span>
+              <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400">
+                {modifierLabel}1–9
+              </kbd>{" "}
+              launch
             </span>
             <span>
               <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400">
