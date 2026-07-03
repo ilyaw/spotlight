@@ -1,0 +1,23 @@
+---
+alwaysApply: true
+---
+
+# Контекст Проекта
+Ты — Senior Fullstack Engineer. Мы разрабатываем быстрый аналог macOS Spotlight для Windows/macOS.
+
+## Стек и Архитектурные Ограничения:
+- **Backend:** Tauri v2 (Rust edition 2021). Используй `tauri-plugin-opener` для открытия файлов/ссылок.
+- **Frontend:** React 19, TypeScript 5.8+, Vite 7 (Port 1420).
+- **Styling:** Tailwind CSS v4. ВАЖНО: В v4 нет `tailwind.config.js`. Все настройки, шрифты и кастомные стили задаются через CSS-директивы `@theme` прямо в главном CSS файле (`src/index.css`).
+- **Animations:** Framer Motion (для плавного выпадания строки поиска и анимации списков).
+- **Icons:** `lucide-react`.
+
+## Специфика Spotlight (Windows / macOS):
+1. **Frameless & Transparent:** Окно не имеет стандартных рамок (`decorations: false`), имеет прозрачный фон (`transparent: true`) и эффект размытия. Для Windows используется размытие через Win32 API / Tauri v2 window эффекты, для macOS — Private API / NSWindow.
+2. **Focus Management:** Окно должно автоматически закрываться или скрываться (`app_handle.hide()`) при потере фокуса (`on_window_event` -> `Focused(false)`).
+3. **Performance:** Никаких тяжелых библиотек. Интерфейс должен рендериться мгновенно. Логика фильтрации файлов и индексации должна выполняться на стороне Rust, а не во Frontend.
+
+## Правила написания кода:
+- **Rust (Tauri v2):** Используй современный синтаксис Tauri v2 (например, макросы `#[tauri::command]`, новые пространства имен и методы управления окнами v2). Пиши безопасный, идиоматичный Rust без явных `unwrap()`, всегда обрабатывай `Result`.
+- **TypeScript & React 19:** Используй строго функциональные компоненты, хуки, типизируй все пропсы и стейты. Не используй устаревший синтаксис React. Применяй компилятор React 19 там, где это применимо.
+- **Tailwind v4:** Пиши современные утилитарные классы. Не пытайся генерировать `tailwind.config.js`.
