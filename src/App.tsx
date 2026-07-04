@@ -2,7 +2,7 @@ import { SpotlightPanel } from "./components/SpotlightPanel";
 
 function App() {
   return (
-    <div className="flex justify-center overflow-hidden p-3">
+    <div className="h-full overflow-hidden rounded-2xl">
       <SpotlightPanel />
     </div>
   );

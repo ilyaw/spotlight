@@ -123,7 +123,7 @@ export function SpotlightPanel() {
       <RgbBorderWrapper
         variant="full-panel"
         className="w-full"
-        fallbackClassName="overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]"
+        fallbackClassName="overflow-hidden rounded-2xl border border-white/10 bg-zinc-900"
       >
         <SearchInput
           ref={inputRef}

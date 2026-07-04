@@ -6,6 +6,9 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 /// Matches the frontend's `DEFAULT_HOTKEY` in `src/types/hotkey.ts`.
 const DEFAULT_SHORTCUT: &str = "Alt+Space";
 
+/// Frameless + rounded UI needs a transparent `NSWindow` background.
+/// `transparent: true` only affects WKWebView; the window layer below it
+/// still paints its default opaque color in the corners outside the panel.
 #[cfg(target_os = "macos")]
 fn clear_native_window_background(window: &tauri::WebviewWindow) {
     use objc2_app_kit::{NSColor, NSWindow};
@@ -55,9 +58,16 @@ pub fn run() {
                 eprintln!("Failed to register default global shortcut: {err}");
             }
 
-            #[cfg(target_os = "macos")]
             if let Some(window) = app.get_webview_window("main") {
+                #[cfg(target_os = "macos")]
                 clear_native_window_background(&window);
+
+                if let Err(err) = window.show() {
+                    eprintln!("Failed to show main window: {err}");
+                }
+                if let Err(err) = window.set_focus() {
+                    eprintln!("Failed to focus main window: {err}");
+                }
             }
 
             Ok(())

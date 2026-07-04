@@ -38,19 +38,18 @@
 }
 
 html,
-body {
-  background: transparent;
+body,
+#root {
+  background: transparent !important;
   margin: 0;
   padding: 0;
   overflow: hidden !important;
   overscroll-behavior: none;
-  height: auto;
+  height: 100%;
 }
 
 #root {
-  background: transparent;
   overflow: hidden;
-  height: auto;
 }
 
 /* Hide scrollbars everywhere in the webview */
@@ -147,10 +146,6 @@ body {
   border-radius: 0;
   background: transparent;
   backdrop-filter: none;
-}
-
-.rgb-border-wrapper--full-panel {
-  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.5);
 }
 
 /* ── Preset: Cyberpunk (conic spin) ── */
