@@ -5,9 +5,19 @@ on:
     branches: [main]
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      platform:
+        description: "Which platform to build"
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - windows
+          - macos
 
 concurrency:
-  group: build-${{ github.ref }}
+  group: build-${{ github.ref }}-${{ github.event.inputs.platform || 'all' }}
   cancel-in-progress: true
 
 jobs:
@@ -17,11 +27,20 @@ jobs:
       matrix:
         include:
           - platform: windows-latest
-            artifact: windows
+            name: windows
           - platform: macos-latest
-            artifact: macos
+            name: macos
+
+    # Skip platforms not selected in manual runs
+    if: >-
+      github.event_name != 'workflow_dispatch' ||
+      github.event.inputs.platform == 'all' ||
+      github.event.inputs.platform == matrix.name
 
     runs-on: ${{ matrix.platform }}
+
+    env:
+      CI: true
 
     steps:
       - name: Checkout
@@ -53,6 +72,7 @@ jobs:
         with:
           name: windows-build
           retention-days: 14
+          if-no-files-found: error
           path: |
             src-tauri/target/release/bundle/msi/*.msi
             src-tauri/target/release/bundle/nsis/*.exe
@@ -63,6 +83,7 @@ jobs:
         with:
           name: macos-build
           retention-days: 14
+          if-no-files-found: error
           path: |
             src-tauri/target/release/bundle/dmg/*.dmg
             src-tauri/target/release/bundle/macos/*.app
