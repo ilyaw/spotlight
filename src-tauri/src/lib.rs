@@ -6,22 +6,30 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 /// Matches the frontend's `DEFAULT_HOTKEY` in `src/types/hotkey.ts`.
 const DEFAULT_SHORTCUT: &str = "Alt+Space";
 
-/// Frameless + rounded UI needs a transparent `NSWindow` background.
-/// `transparent: true` only affects WKWebView; the window layer below it
-/// still paints its default opaque color in the corners outside the panel.
-#[cfg(target_os = "macos")]
-fn clear_native_window_background(window: &tauri::WebviewWindow) {
-    use objc2_app_kit::{NSColor, NSWindow};
+/// Frameless + rounded UI needs platform-specific transparency setup.
+/// `transparent: true` alone is not enough: macOS still paints an opaque
+/// `NSWindow` layer in the corners, and Windows draws a rectangular native
+/// shadow that shows up as grey artifacts around rounded CSS corners.
+fn configure_transparent_window(window: &tauri::WebviewWindow) {
+    #[cfg(target_os = "macos")]
+    {
+        use objc2_app_kit::{NSColor, NSWindow};
 
-    let Ok(ns_window_ptr) = window.ns_window() else {
-        return;
-    };
+        let Ok(ns_window_ptr) = window.ns_window() else {
+            return;
+        };
 
-    // SAFETY: `ns_window_ptr` is a valid, live `NSWindow*` handed to us by Tauri
-    // for the lifetime of the window.
-    let ns_window = unsafe { &*(ns_window_ptr as *mut NSWindow) };
-    ns_window.setOpaque(false);
-    ns_window.setBackgroundColor(Some(&NSColor::clearColor()));
+        // SAFETY: `ns_window_ptr` is a valid, live `NSWindow*` handed to us by Tauri
+        // for the lifetime of the window.
+        let ns_window = unsafe { &*(ns_window_ptr as *mut NSWindow) };
+        ns_window.setOpaque(false);
+        ns_window.setBackgroundColor(Some(&NSColor::clearColor()));
+    }
+
+    #[cfg(target_os = "windows")]
+    if let Err(err) = window.set_shadow(false) {
+        eprintln!("Failed to disable window shadow on Windows: {err}");
+    }
 }
 
 fn toggle_window_visibility(window: &tauri::WebviewWindow) -> tauri::Result<()> {
@@ -59,8 +67,7 @@ pub fn run() {
             }
 
             if let Some(window) = app.get_webview_window("main") {
-                #[cfg(target_os = "macos")]
-                clear_native_window_background(&window);
+                configure_transparent_window(&window);
 
                 if let Err(err) = window.show() {
                     eprintln!("Failed to show main window: {err}");

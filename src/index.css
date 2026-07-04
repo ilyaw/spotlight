@@ -74,6 +74,15 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/*
+ * Windows disables the native window shadow because it conflicts with
+ * transparent + rounded UI and paints grey corners / a bottom edge line.
+ * Replace it with a CSS drop-shadow on the panel instead.
+ */
+.spotlight-panel-shadow {
+  filter: drop-shadow(0 16px 40px rgb(0 0 0 / 0.55));
+}
+
 /* ── RGB border wrapper ── */
 
 .rgb-border-wrapper {

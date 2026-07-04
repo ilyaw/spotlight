@@ -12,7 +12,7 @@ import { HotkeySettingsPanel } from "./HotkeySettingsPanel";
 import { useSpotlightSearch } from "../hooks/useSpotlightSearch";
 import { useWindowAutoHeight } from "../hooks/useWindowAutoHeight";
 import { useQuickLaunch } from "../context/QuickLaunchContext";
-import { isMacPlatform } from "../lib/platform";
+import { isMacPlatform, isWindowsPlatform } from "../lib/platform";
 import type { SpotlightItem } from "../data/mockItems";
 import type { QuickLaunchKey } from "../types/quickLaunch";
 
@@ -118,7 +118,7 @@ export function SpotlightPanel() {
       initial={{ opacity: 0, scale: 0.96, y: -8 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
-      className="w-full max-w-[680px]"
+      className={`w-full max-w-[680px]${isWindowsPlatform() ? " spotlight-panel-shadow" : ""}`}
     >
       <RgbBorderWrapper
         variant="full-panel"
