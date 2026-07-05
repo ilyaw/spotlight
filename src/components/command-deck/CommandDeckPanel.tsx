@@ -41,6 +41,7 @@ export function CommandDeckPanel() {
     isLoading,
     scanError,
     refreshApps,
+    removeApp,
   } = useAppLauncher();
 
   const showFilters = shouldShowFilters(filterSettings);
@@ -80,6 +81,13 @@ export function CommandDeckPanel() {
     await launchApp(app);
     await getCurrentWindow().hide();
   }, []);
+
+  const handleRemove = useCallback(
+    (app: LauncherApp) => {
+      removeApp(app.path);
+    },
+    [removeApp],
+  );
 
   const tryAppShortcut = useCallback(
     (event: React.KeyboardEvent): boolean => {
@@ -145,6 +153,7 @@ export function CommandDeckPanel() {
 
   return (
     <motion.div
+      ref={panelRef}
       initial={{ opacity: 0, scale: 0.96, y: -8 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
@@ -159,7 +168,6 @@ export function CommandDeckPanel() {
           {settingsOpen ? (
             <motion.div
               key="settings-view"
-              ref={panelRef}
               initial={{ opacity: 0, x: 24 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 24 }}
@@ -175,7 +183,6 @@ export function CommandDeckPanel() {
           ) : (
             <motion.div
               key="main-view"
-              ref={panelRef}
               className="flex max-h-[800px] min-h-0 flex-col overflow-hidden"
               initial={{ opacity: 0, x: -24 }}
               animate={{ opacity: 1, x: 0 }}
@@ -211,6 +218,7 @@ export function CommandDeckPanel() {
                 isLoading={isLoading}
                 onSelectIndex={setSelectedIndex}
                 onLaunch={(app) => void handleLaunch(app)}
+                onRemove={handleRemove}
               />
             </motion.div>
           )}

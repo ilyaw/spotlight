@@ -2,7 +2,7 @@ import { CommandDeckPanel } from "./components/command-deck/CommandDeckPanel";
 
 function App() {
   return (
-    <div className="h-full overflow-hidden rounded-[var(--radius-deck)]">
+    <div className="w-full">
       <CommandDeckPanel />
     </div>
   );

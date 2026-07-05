@@ -14,7 +14,6 @@ import {
   mergeApps,
   type AppLauncherSettings,
   type FilterSettings,
-  type InstalledApp,
   type LauncherApp,
   type LauncherLayoutMode,
   type ManualAppEntry,
@@ -58,6 +57,8 @@ function loadPersistedSettings(): AppLauncherSettings {
         ...parsed.filterSettings,
         filters: parsed.filterSettings?.filters ?? [],
       },
+      hasIndexedApps: parsed.hasIndexedApps ?? false,
+      indexedApps: parsed.indexedApps ?? [],
     };
   } catch {
     return { ...DEFAULT_APP_LAUNCHER_SETTINGS };
@@ -97,8 +98,7 @@ export function AppLauncherProvider({ children }: { children: ReactNode }) {
   const [persisted, setPersisted] = useState<AppLauncherSettings>(
     loadPersistedSettings,
   );
-  const [scannedRaw, setScannedRaw] = useState<InstalledApp[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!persisted.hasIndexedApps);
   const [scanError, setScanError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -110,24 +110,56 @@ export function AppLauncherProvider({ children }: { children: ReactNode }) {
     setScanError(null);
     try {
       const installed = await fetchInstalledApps();
-      setScannedRaw(installed);
+      setPersisted((prev) => ({
+        ...prev,
+        hasIndexedApps: true,
+        indexedApps: installed,
+      }));
     } catch (err) {
       setScanError(
         err instanceof Error ? err.message : "Failed to scan installed apps",
       );
-      setScannedRaw([]);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void refreshApps();
-  }, [refreshApps]);
+    if (persisted.hasIndexedApps) return;
+
+    let cancelled = false;
+
+    const runInitialScan = async () => {
+      setIsLoading(true);
+      setScanError(null);
+      try {
+        const installed = await fetchInstalledApps();
+        if (cancelled) return;
+        setPersisted((prev) => ({
+          ...prev,
+          hasIndexedApps: true,
+          indexedApps: installed,
+        }));
+      } catch (err) {
+        if (cancelled) return;
+        setScanError(
+          err instanceof Error ? err.message : "Failed to scan installed apps",
+        );
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+
+    void runInitialScan();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [persisted.hasIndexedApps]);
 
   const apps = useMemo(
-    () => mergeApps(scannedRaw, persisted),
-    [scannedRaw, persisted],
+    () => mergeApps(persisted.indexedApps, persisted),
+    [persisted],
   );
 
   const setLayoutMode = useCallback((layoutMode: LauncherLayoutMode) => {

@@ -12,6 +12,7 @@ type ApplicationsSectionProps = {
   isLoading?: boolean;
   onSelectIndex: (index: number) => void;
   onLaunch: (app: LauncherApp) => void;
+  onRemove?: (app: LauncherApp) => void;
 };
 
 export function ApplicationsSection({
@@ -21,6 +22,7 @@ export function ApplicationsSection({
   isLoading = false,
   onSelectIndex,
   onLaunch,
+  onRemove,
 }: ApplicationsSectionProps) {
   const [pendingPath, setPendingPath] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -97,6 +99,11 @@ export function ApplicationsSection({
                   onSelect={() => onSelectIndex(index)}
                   onLaunch={() => onLaunch(app)}
                   onHover={() => onSelectIndex(index)}
+                  onRemove={
+                    app.source === "manual" && onRemove
+                      ? () => onRemove(app)
+                      : undefined
+                  }
                 />
               ))}
             </motion.div>

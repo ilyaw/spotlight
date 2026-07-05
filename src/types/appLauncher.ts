@@ -48,6 +48,9 @@ export type AppLauncherSettings = {
   manualApps: ManualAppEntry[];
   overrides: AppOverride[];
   filterSettings: FilterSettings;
+  /** System apps indexed on the very first launch; not re-scanned afterwards. */
+  hasIndexedApps: boolean;
+  indexedApps: InstalledApp[];
 };
 
 export const APP_LAUNCHER_STORAGE_KEY = "spotlight-app-launcher-settings";
@@ -63,6 +66,8 @@ export const DEFAULT_APP_LAUNCHER_SETTINGS: AppLauncherSettings = {
   manualApps: [],
   overrides: [],
   filterSettings: DEFAULT_FILTER_SETTINGS,
+  hasIndexedApps: false,
+  indexedApps: [],
 };
 
 export function resolveLayout(

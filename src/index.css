@@ -62,7 +62,9 @@ body,
   padding: 0;
   overflow: hidden !important;
   overscroll-behavior: none;
-  height: 100%;
+  /* Let content define natural height; Tauri window size is set from JS. */
+  height: auto;
+  min-height: 0;
 }
 
 #root {
@@ -152,12 +154,13 @@ body {
   --gradient-angle: 135deg;
   --radius-deck: 0.75rem;
   border-radius: var(--radius-deck);
-  transform: translateZ(0);
-  backface-visibility: hidden;
+  /* Padding (not margin on inner) keeps all four border sides in the layout box. */
+  padding: var(--rgb-thickness);
+  box-sizing: border-box;
 }
 
 .rgb-border-wrapper--full-panel {
-  overflow: hidden;
+  overflow: visible;
   isolation: isolate;
 }
 
@@ -167,8 +170,6 @@ body {
   z-index: 0;
   pointer-events: none;
   border-radius: inherit;
-  transform: translateZ(0);
-  backface-visibility: hidden;
   box-shadow:
     0 0 var(--rgb-glow-blur) color-mix(in srgb, var(--rgb-color-1) calc(var(--rgb-glow-opacity) * 100%), transparent),
     0 0 calc(var(--rgb-glow-blur) * 1.5) color-mix(in srgb, var(--rgb-color-2) calc(var(--rgb-glow-opacity) * 60%), transparent);
@@ -177,10 +178,7 @@ body {
 .rgb-border-inner {
   position: relative;
   z-index: 1;
-  margin: var(--rgb-thickness);
   background: var(--color-deck-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   border-radius: calc(var(--radius-deck) - var(--rgb-thickness));
   overflow: hidden;
 }

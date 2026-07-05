@@ -28,7 +28,7 @@ export const CommandDeckSearch = forwardRef<
   };
 
   return (
-    <div className="flex items-center gap-3 border-b deck-border px-4 py-3.5">
+    <div className="flex shrink-0 items-center gap-3 border-b deck-border px-4 py-3.5">
       <Search
         className="h-5 w-5 shrink-0 text-[var(--color-deck-muted)]"
         strokeWidth={2}

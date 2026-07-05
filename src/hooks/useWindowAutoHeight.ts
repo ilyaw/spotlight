@@ -3,24 +3,38 @@ import { LogicalSize } from "@tauri-apps/api/dpi";
 import { currentMonitor, getCurrentWindow } from "@tauri-apps/api/window";
 
 const WINDOW_WIDTH = 680;
-const BOTTOM_PADDING = 12;
-const MAX_WINDOW_HEIGHT = 800;
+/** Safety margin for subpixel rounding at the window edge. */
+const WINDOW_EDGE_PADDING = 4;
 const SCREEN_MARGIN = 16;
 
-async function resolveMaxWindowHeight(): Promise<number> {
+async function resolveScreenMaxHeight(): Promise<number> {
   try {
     const monitor = await currentMonitor();
-    if (!monitor) return MAX_WINDOW_HEIGHT;
+    if (!monitor) return 1200;
 
     const logicalWorkAreaHeight =
       monitor.workArea.size.height / monitor.scaleFactor;
-    return Math.min(
-      MAX_WINDOW_HEIGHT,
-      Math.max(80, Math.floor(logicalWorkAreaHeight - SCREEN_MARGIN)),
-    );
+    return Math.max(200, Math.floor(logicalWorkAreaHeight - SCREEN_MARGIN));
   } catch {
-    return MAX_WINDOW_HEIGHT;
+    return 1200;
   }
+}
+
+function measurePanelHeight(root: HTMLElement): number {
+  const panel =
+    root.querySelector<HTMLElement>(".rgb-border-wrapper") ??
+    root.querySelector<HTMLElement>(".deck-panel") ??
+    root;
+
+  let top = 0;
+  let node: HTMLElement | null = panel;
+  while (node) {
+    top += node.offsetTop;
+    node = node.offsetParent as HTMLElement | null;
+  }
+
+  // offsetHeight only — scrollHeight inflates when inner lists overflow.
+  return top + panel.offsetHeight;
 }
 
 export function useWindowAutoHeight(
@@ -32,47 +46,68 @@ export function useWindowAutoHeight(
     const el = targetRef.current;
     if (!el) return;
 
-    let maxHeight = MAX_WINDOW_HEIGHT;
+    let screenMaxHeight = 1200;
     let cancelled = false;
+    let syncRaf = 0;
 
-    const refreshMaxHeight = async () => {
-      maxHeight = await resolveMaxWindowHeight();
+    const refreshScreenMax = async () => {
+      screenMaxHeight = await resolveScreenMaxHeight();
       if (!cancelled) sync();
     };
 
     const sync = () => {
-      requestAnimationFrame(() => {
-        if (!targetRef.current) return;
+      cancelAnimationFrame(syncRaf);
+      syncRaf = requestAnimationFrame(() => {
+        if (!targetRef.current || cancelled) return;
 
         const height = Math.ceil(
-          targetRef.current.getBoundingClientRect().bottom + BOTTOM_PADDING,
+          measurePanelHeight(targetRef.current) + WINDOW_EDGE_PADDING,
         );
         void getCurrentWindow().setSize(
           new LogicalSize(
             WINDOW_WIDTH,
-            Math.min(Math.max(height, 80), maxHeight),
+            Math.min(Math.max(height, 80), screenMaxHeight),
           ),
         );
       });
     };
 
-    void refreshMaxHeight();
+    void refreshScreenMax();
 
-    const observer = new ResizeObserver(() => {
-      sync();
-    });
-    observer.observe(el);
+    const observed = new WeakSet<Element>();
 
-    const observeDescendants = (root: Element) => {
-      for (const child of root.children) {
-        observer.observe(child);
+    const observeTree = (node: Element) => {
+      if (observed.has(node)) return;
+      observed.add(node);
+      resizeObserver.observe(node);
+      for (const child of node.children) {
+        observeTree(child);
       }
     };
-    observeDescendants(el);
+
+    const resizeObserver = new ResizeObserver(() => {
+      sync();
+    });
+
+    observeTree(el);
+
+    const mutationObserver = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (node instanceof Element) {
+            observeTree(node);
+          }
+        }
+      }
+      sync();
+    });
+    mutationObserver.observe(el, { childList: true, subtree: true });
 
     return () => {
       cancelled = true;
-      observer.disconnect();
+      cancelAnimationFrame(syncRaf);
+      resizeObserver.disconnect();
+      mutationObserver.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
