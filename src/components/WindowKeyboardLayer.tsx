@@ -20,8 +20,12 @@ function matchesHotkey(event: KeyboardEvent, hotkey: HotkeyCombo): boolean {
   return combosEqual(comboFromEvent(event), hotkey);
 }
 
+/** Ignore toggle-hotkey key events right after the window opens (same physical press). */
+const TOGGLE_SUPPRESS_MS = 250;
+
 function shouldHandleHide(event: KeyboardEvent, hotkey: HotkeyCombo): boolean {
-  if (event.key === "Escape") return true;
+  if (event.key === "Escape") return event.type === "keydown";
+  if (event.type !== "keydown") return false;
   return matchesHotkey(event, hotkey);
 }
 
@@ -40,6 +44,8 @@ export function WindowKeyboardLayer() {
   isRecordingRef.current = isRecording;
 
   useEffect(() => {
+    let suppressToggleUntil = 0;
+
     const hidePanel = () => {
       void getCurrentWindow().hide();
     };
@@ -52,6 +58,12 @@ export function WindowKeyboardLayer() {
     const handleKey = (event: KeyboardEvent) => {
       if (isRecordingRef.current) return;
       if (!shouldHandleHide(event, hotkeyRef.current)) return;
+      if (
+        event.key !== "Escape" &&
+        performance.now() < suppressToggleUntil
+      ) {
+        return;
+      }
 
       event.preventDefault();
       event.stopPropagation();
@@ -65,13 +77,13 @@ export function WindowKeyboardLayer() {
     };
 
     const handleWindowFocus = () => {
+      suppressToggleUntil = performance.now() + TOGGLE_SUPPRESS_MS;
       requestAnimationFrame(refocusSentinel);
     };
 
     let unlistenFocus: (() => void) | undefined;
 
     document.addEventListener("keydown", handleKey, true);
-    document.addEventListener("keyup", handleKey, true);
     document.addEventListener("mouseup", handleMouseUp, true);
     void getCurrentWindow()
       .onFocusChanged(({ payload: focused }) => {
@@ -84,7 +96,6 @@ export function WindowKeyboardLayer() {
 
     return () => {
       document.removeEventListener("keydown", handleKey, true);
-      document.removeEventListener("keyup", handleKey, true);
       document.removeEventListener("mouseup", handleMouseUp, true);
       unlistenFocus?.();
     };

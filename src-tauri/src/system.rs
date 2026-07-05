@@ -1,6 +1,9 @@
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use tauri::{AppHandle, Manager, WebviewWindow};
+
+const FOCUS_HIDE_GRACE: Duration = Duration::from_millis(250);
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -24,14 +27,36 @@ impl Default for SystemBehavior {
 
 pub struct RuntimeSettings {
     pub inner: Arc<Mutex<SystemBehavior>>,
+    opened_at: Arc<Mutex<Option<Instant>>>,
 }
 
 impl RuntimeSettings {
     pub fn new(behavior: SystemBehavior) -> Self {
         Self {
             inner: Arc::new(Mutex::new(behavior)),
+            opened_at: Arc::new(Mutex::new(None)),
         }
     }
+
+    pub fn mark_recently_opened(&self) {
+        if let Ok(mut guard) = self.opened_at.lock() {
+            *guard = Some(Instant::now());
+        }
+    }
+
+    pub fn opened_at_handle(&self) -> Arc<Mutex<Option<Instant>>> {
+        self.opened_at.clone()
+    }
+}
+
+fn should_suppress_focus_hide(opened_at: &Arc<Mutex<Option<Instant>>>) -> bool {
+    let Ok(guard) = opened_at.lock() else {
+        return false;
+    };
+
+    guard
+        .map(|opened| opened.elapsed() < FOCUS_HIDE_GRACE)
+        .unwrap_or(false)
 }
 
 pub fn apply_system_behavior(app: &AppHandle, behavior: SystemBehavior) -> Result<(), String> {
@@ -84,9 +109,14 @@ pub fn apply_window_visibility_policy(
     Ok(())
 }
 
-pub fn attach_window_handlers(window: &WebviewWindow, settings: Arc<Mutex<SystemBehavior>>) {
+pub fn attach_window_handlers(
+    window: &WebviewWindow,
+    settings: Arc<Mutex<SystemBehavior>>,
+    opened_at: Arc<Mutex<Option<Instant>>>,
+) {
     let window_for_close = window.clone();
     let window_for_focus = window.clone();
+    let opened_at_for_focus = opened_at;
 
     window.on_window_event(move |event| {
         let behavior = match settings.lock() {
@@ -104,7 +134,7 @@ pub fn attach_window_handlers(window: &WebviewWindow, settings: Arc<Mutex<System
                 }
             }
             tauri::WindowEvent::Focused(false) => {
-                if behavior.hide_on_focus_loss {
+                if behavior.hide_on_focus_loss && !should_suppress_focus_hide(&opened_at_for_focus) {
                     if let Err(err) = window_for_focus.hide() {
                         eprintln!("Failed to hide window on focus loss: {err}");
                     }

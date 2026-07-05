@@ -36,12 +36,19 @@ fn configure_transparent_window(window: &tauri::WebviewWindow) {
     }
 }
 
-fn toggle_window_visibility(window: &tauri::WebviewWindow) -> tauri::Result<()> {
+fn toggle_window_visibility(
+    app: &tauri::AppHandle,
+    window: &tauri::WebviewWindow,
+) -> tauri::Result<()> {
     if window.is_visible()? {
         window.hide()
     } else {
         window.show()?;
-        window.set_focus()
+        window.set_focus()?;
+        if let Some(settings) = app.try_state::<RuntimeSettings>() {
+            settings.mark_recently_opened();
+        }
+        Ok(())
     }
 }
 
@@ -64,7 +71,7 @@ pub fn run() {
                     }
 
                     if let Some(window) = app.get_webview_window("main") {
-                        if let Err(err) = toggle_window_visibility(&window) {
+                        if let Err(err) = toggle_window_visibility(app, &window) {
                             eprintln!("Failed to toggle window visibility: {err}");
                         }
                     }
@@ -87,7 +94,11 @@ pub fn run() {
                 }
 
                 let settings = app.state::<RuntimeSettings>();
-                attach_window_handlers(&window, settings.inner.clone());
+                attach_window_handlers(
+                    &window,
+                    settings.inner.clone(),
+                    settings.opened_at_handle(),
+                );
 
                 if default_behavior.show_window_on_launch {
                     if let Err(err) = window.show() {
@@ -96,6 +107,7 @@ pub fn run() {
                     if let Err(err) = window.set_focus() {
                         eprintln!("Failed to focus main window: {err}");
                     }
+                    settings.mark_recently_opened();
                 }
             }
 
