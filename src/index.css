@@ -130,7 +130,6 @@ body {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  background: var(--color-deck-bg);
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
 }
@@ -213,20 +212,32 @@ body {
 .rgb-border-inner {
   position: relative;
   z-index: 2;
-  background: rgb(24 24 27);
+  background: var(--color-deck-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-radius: calc(var(--radius-deck) - var(--rgb-thickness));
   overflow: hidden;
 }
 
+.deck-ambient-bg {
+  position: absolute;
+  inset: -20%;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  filter: blur(48px);
+  opacity: var(--ambient-opacity, 0.45);
+}
+
 .rgb-border-wrapper--reverse .rgb-border-gradient,
-.rgb-border-wrapper--reverse .rgb-border-backdrop-glow {
+.rgb-border-wrapper--reverse .rgb-border-backdrop-glow,
+.rgb-border-wrapper--reverse .deck-ambient-bg {
   animation-direction: reverse !important;
 }
 
 .rgb-preset-static .rgb-border-gradient,
-.rgb-preset-static .rgb-border-backdrop-glow {
+.rgb-preset-static .rgb-border-backdrop-glow,
+.rgb-preset-static .deck-ambient-bg {
   background: linear-gradient(
     var(--gradient-angle),
     var(--rgb-color-1),
@@ -235,7 +246,8 @@ body {
 }
 
 .rgb-preset-two-color .rgb-border-gradient,
-.rgb-preset-two-color .rgb-border-backdrop-glow {
+.rgb-preset-two-color .rgb-border-backdrop-glow,
+.rgb-preset-two-color .deck-ambient-bg {
   background: conic-gradient(
     from var(--gradient-angle),
     var(--rgb-color-1),
@@ -246,7 +258,8 @@ body {
 }
 
 .rgb-preset-rainbow .rgb-border-gradient,
-.rgb-preset-rainbow .rgb-border-backdrop-glow {
+.rgb-preset-rainbow .rgb-border-backdrop-glow,
+.rgb-preset-rainbow .deck-ambient-bg {
   background: linear-gradient(
     var(--gradient-angle),
     var(--rgb-color-1),

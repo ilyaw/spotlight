@@ -22,6 +22,7 @@ export function AppearanceSection() {
   const {
     settings,
     setEnabled,
+    setAmbientBackground,
     setPreset,
     setDirection,
     setSpeed,
@@ -31,6 +32,7 @@ export function AppearanceSection() {
 
   const {
     enabled,
+    ambientBackground,
     preset,
     direction,
     speed,
@@ -73,6 +75,22 @@ export function AppearanceSection() {
           </p>
         </div>
         <Toggle checked={enabled} onChange={setEnabled} />
+      </label>
+
+      <label
+        className={`flex items-center justify-between ${!enabled ? "opacity-50" : ""}`}
+      >
+        <div>
+          <span className="text-sm">Анимированный фон</span>
+          <p className="text-[11px] text-[var(--color-deck-muted)]">
+            Мягкое цветное свечение внутри панели
+          </p>
+        </div>
+        <Toggle
+          checked={ambientBackground}
+          onChange={setAmbientBackground}
+          disabled={!enabled}
+        />
       </label>
 
       <div className="space-y-2">
@@ -162,17 +180,20 @@ export function AppearanceSection() {
 function Toggle({
   checked,
   onChange,
+  disabled,
 }: {
   checked: boolean;
   onChange: (v: boolean) => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
+      disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative h-6 w-11 rounded-full transition-colors ${
+      className={`relative h-6 w-11 rounded-full transition-colors disabled:cursor-not-allowed ${
         checked ? "bg-[var(--color-deck-accent)]" : "deck-surface"
       }`}
     >

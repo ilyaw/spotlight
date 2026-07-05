@@ -11,6 +11,7 @@ export type RgbGradient = {
 
 export type RgbEffectSettings = {
   enabled: boolean;
+  ambientBackground: boolean;
   preset: RgbPreset;
   target: RgbEffectTarget;
   direction: RgbGradientDirection;
@@ -37,6 +38,7 @@ export const RGB_PRESET_GRADIENTS: Record<RgbPreset, RgbGradient> = {
 
 export const DEFAULT_RGB_SETTINGS: RgbEffectSettings = {
   enabled: true,
+  ambientBackground: true,
   preset: "rainbow",
   target: "full-panel",
   direction: "clockwise",
@@ -75,6 +77,7 @@ export function glowVars(intensity: number): {
   opacity: string;
   nearAlpha: string;
   farAlpha: string;
+  ambientOpacity: string;
 } {
   const t = Math.max(0, Math.min(100, intensity)) / 100;
   return {
@@ -82,5 +85,6 @@ export function glowVars(intensity: number): {
     opacity: `${t * 0.25}`,
     nearAlpha: `${t * 0.45}`,
     farAlpha: `${t * 0.12}`,
+    ambientOpacity: `${t * 0.5}`,
   };
 }

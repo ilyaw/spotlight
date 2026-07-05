@@ -25,6 +25,7 @@ type RgbEffectContextValue = {
   setSpeed: (speed: number) => void;
   setThickness: (thickness: number) => void;
   setGlowIntensity: (glowIntensity: number) => void;
+  setAmbientBackground: (ambientBackground: boolean) => void;
   setGradient: (gradient: RgbGradient) => void;
   resetGradientToPreset: () => void;
   updateSettings: (partial: Partial<RgbEffectSettings>) => void;
@@ -52,6 +53,8 @@ function migrateSettings(parsed: Partial<RgbEffectSettings>): RgbEffectSettings 
     target: "full-panel",
     direction: parsed.direction ?? DEFAULT_RGB_SETTINGS.direction,
     glowIntensity: parsed.glowIntensity ?? DEFAULT_RGB_SETTINGS.glowIntensity,
+    ambientBackground:
+      parsed.ambientBackground ?? DEFAULT_RGB_SETTINGS.ambientBackground,
     gradient: {
       ...DEFAULT_RGB_SETTINGS.gradient,
       ...parsed.gradient,
@@ -124,6 +127,11 @@ export function RgbEffectProvider({ children }: { children: ReactNode }) {
     [updateSettings],
   );
 
+  const setAmbientBackground = useCallback(
+    (ambientBackground: boolean) => updateSettings({ ambientBackground }),
+    [updateSettings],
+  );
+
   const setGradient = useCallback(
     (gradient: RgbGradient) => updateSettings({ gradient }),
     [updateSettings],
@@ -145,6 +153,7 @@ export function RgbEffectProvider({ children }: { children: ReactNode }) {
       setSpeed,
       setThickness,
       setGlowIntensity,
+      setAmbientBackground,
       setGradient,
       resetGradientToPreset,
       updateSettings,
@@ -157,6 +166,7 @@ export function RgbEffectProvider({ children }: { children: ReactNode }) {
       setSpeed,
       setThickness,
       setGlowIntensity,
+      setAmbientBackground,
       setGradient,
       resetGradientToPreset,
       updateSettings,

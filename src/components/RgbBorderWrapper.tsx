@@ -22,6 +22,7 @@ export function RgbBorderWrapper({
   const { settings } = useRgbEffect();
   const {
     enabled,
+    ambientBackground,
     target,
     preset,
     direction,
@@ -46,6 +47,7 @@ export function RgbBorderWrapper({
       "--rgb-glow-opacity": glow.opacity,
       "--rgb-glow-near-alpha": glow.nearAlpha,
       "--rgb-glow-far-alpha": glow.farAlpha,
+      "--ambient-opacity": glow.ambientOpacity,
     } as CSSProperties;
   }, [thickness, preset, speed, glowIntensity, gradient]);
 
@@ -72,7 +74,15 @@ export function RgbBorderWrapper({
     >
       <div className="rgb-border-backdrop-glow" aria-hidden="true" />
       <div className="rgb-border-gradient" aria-hidden="true" />
-      <div className="rgb-border-inner">{children}</div>
+      <div className="rgb-border-inner">
+        {ambientBackground && (
+          <div
+            className={`deck-ambient-bg rgb-preset-${preset} ${directionClass}`}
+            aria-hidden="true"
+          />
+        )}
+        <div className="relative z-[1] flex min-h-0 flex-col">{children}</div>
+      </div>
     </div>
   );
 }
