@@ -2,7 +2,9 @@ import { useLayoutEffect, useRef, type RefObject } from "react";
 import { LogicalSize } from "@tauri-apps/api/dpi";
 import { currentMonitor, getCurrentWindow } from "@tauri-apps/api/window";
 
-const WINDOW_WIDTH = 680;
+const PANEL_WIDTH = 680;
+const GLOW_BLEED = 16;
+const WINDOW_WIDTH = PANEL_WIDTH + GLOW_BLEED * 2;
 /** Safety margin for subpixel rounding at the window edge. */
 const WINDOW_EDGE_PADDING = 4;
 const SCREEN_MARGIN = 16;
@@ -21,20 +23,8 @@ async function resolveScreenMaxHeight(): Promise<number> {
 }
 
 function measurePanelHeight(root: HTMLElement): number {
-  const panel =
-    root.querySelector<HTMLElement>(".rgb-border-wrapper") ??
-    root.querySelector<HTMLElement>(".deck-panel") ??
-    root;
-
-  let top = 0;
-  let node: HTMLElement | null = panel;
-  while (node) {
-    top += node.offsetTop;
-    node = node.offsetParent as HTMLElement | null;
-  }
-
-  // offsetHeight only — scrollHeight inflates when inner lists overflow.
-  return top + panel.offsetHeight;
+  // Full container height including glow bleed padding.
+  return root.offsetHeight;
 }
 
 export function useWindowAutoHeight(

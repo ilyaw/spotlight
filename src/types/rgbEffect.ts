@@ -73,10 +73,14 @@ export function speedToDuration(speed: number, preset: RgbPreset): string {
 export function glowVars(intensity: number): {
   blur: string;
   opacity: string;
+  nearAlpha: string;
+  farAlpha: string;
 } {
   const t = Math.max(0, Math.min(100, intensity)) / 100;
   return {
-    blur: `${8 + t * 24}px`,
-    opacity: `${0.2 + t * 0.6}`,
+    blur: `${t * 8}px`,
+    opacity: `${t * 0.25}`,
+    nearAlpha: `${t * 0.45}`,
+    farAlpha: `${t * 0.12}`,
   };
 }

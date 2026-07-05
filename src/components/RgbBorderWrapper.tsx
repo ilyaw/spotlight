@@ -44,6 +44,8 @@ export function RgbBorderWrapper({
       "--gradient-angle": `${gradient.angle}deg`,
       "--rgb-glow-blur": glow.blur,
       "--rgb-glow-opacity": glow.opacity,
+      "--rgb-glow-near-alpha": glow.nearAlpha,
+      "--rgb-glow-far-alpha": glow.farAlpha,
     } as CSSProperties;
   }, [thickness, preset, speed, glowIntensity, gradient]);
 
@@ -68,6 +70,7 @@ export function RgbBorderWrapper({
       className={`rgb-border-wrapper rgb-border-wrapper--full-panel rgb-preset-${preset} ${directionClass} ${className}`}
       style={cssVars}
     >
+      <div className="rgb-border-backdrop-glow" aria-hidden="true" />
       <div className="rgb-border-gradient" aria-hidden="true" />
       <div className="rgb-border-inner">{children}</div>
     </div>

@@ -4,6 +4,7 @@
 @theme {
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   --radius-deck: 0.75rem;
+  --rgb-glow-bleed: 16px;
 
   --animate-rgb-spin: rgb-spin var(--rgb-duration, 3s) linear infinite;
   --animate-rgb-sweep: rgb-sweep var(--rgb-duration, 4s) linear infinite;
@@ -140,14 +141,21 @@ body {
   background: transparent !important;
 }
 
+.spotlight-glow-bleed {
+  padding: var(--rgb-glow-bleed);
+  box-sizing: border-box;
+}
+
 /* ── RGB border wrapper ── */
 
 .rgb-border-wrapper {
   position: relative;
   --rgb-thickness: 2px;
   --rgb-duration: 3s;
-  --rgb-glow-blur: 16px;
-  --rgb-glow-opacity: 0.5;
+  --rgb-glow-blur: 8px;
+  --rgb-glow-opacity: 0.25;
+  --rgb-glow-near-alpha: 0.45;
+  --rgb-glow-far-alpha: 0.12;
   --rgb-color-1: #00f0ff;
   --rgb-color-2: #ff00aa;
   --rgb-color-3: #ffe600;
@@ -161,33 +169,61 @@ body {
 
 .rgb-border-wrapper--full-panel {
   overflow: visible;
-  isolation: isolate;
+}
+
+.rgb-border-backdrop-glow,
+.rgb-border-gradient {
+  position: absolute;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.rgb-border-backdrop-glow {
+  z-index: 0;
+  inset: 0;
+  padding: var(--rgb-thickness);
+  filter: blur(var(--rgb-glow-blur));
+  opacity: var(--rgb-glow-opacity);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
 }
 
 .rgb-border-gradient {
-  position: absolute;
   inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  border-radius: inherit;
+  z-index: 1;
   box-shadow:
-    0 0 var(--rgb-glow-blur) color-mix(in srgb, var(--rgb-color-1) calc(var(--rgb-glow-opacity) * 100%), transparent),
-    0 0 calc(var(--rgb-glow-blur) * 1.5) color-mix(in srgb, var(--rgb-color-2) calc(var(--rgb-glow-opacity) * 60%), transparent);
+    0 0 4px 1px
+      color-mix(
+        in srgb,
+        var(--rgb-color-1) calc(var(--rgb-glow-near-alpha) * 100%),
+        transparent
+      ),
+    0 0 10px 2px
+      color-mix(
+        in srgb,
+        var(--rgb-color-2) calc(var(--rgb-glow-far-alpha) * 100%),
+        transparent
+      );
 }
 
 .rgb-border-inner {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   background: var(--color-deck-bg);
   border-radius: calc(var(--radius-deck) - var(--rgb-thickness));
   overflow: hidden;
 }
 
-.rgb-border-wrapper--reverse .rgb-border-gradient {
+.rgb-border-wrapper--reverse .rgb-border-gradient,
+.rgb-border-wrapper--reverse .rgb-border-backdrop-glow {
   animation-direction: reverse !important;
 }
 
-.rgb-preset-static .rgb-border-gradient {
+.rgb-preset-static .rgb-border-gradient,
+.rgb-preset-static .rgb-border-backdrop-glow {
   background: linear-gradient(
     var(--gradient-angle),
     var(--rgb-color-1),
@@ -195,7 +231,8 @@ body {
   );
 }
 
-.rgb-preset-two-color .rgb-border-gradient {
+.rgb-preset-two-color .rgb-border-gradient,
+.rgb-preset-two-color .rgb-border-backdrop-glow {
   background: conic-gradient(
     from var(--gradient-angle),
     var(--rgb-color-1),
@@ -205,7 +242,8 @@ body {
   animation: rgb-spin var(--rgb-duration) linear infinite;
 }
 
-.rgb-preset-rainbow .rgb-border-gradient {
+.rgb-preset-rainbow .rgb-border-gradient,
+.rgb-preset-rainbow .rgb-border-backdrop-glow {
   background: linear-gradient(
     var(--gradient-angle),
     var(--rgb-color-1),
