@@ -130,6 +130,7 @@ body {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
+  background: var(--color-deck-bg);
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
 }
@@ -212,7 +213,9 @@ body {
 .rgb-border-inner {
   position: relative;
   z-index: 2;
-  background: var(--color-deck-bg);
+  background: rgb(24 24 27);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-radius: calc(var(--radius-deck) - var(--rgb-thickness));
   overflow: hidden;
 }

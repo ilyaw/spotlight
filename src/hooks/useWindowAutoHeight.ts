@@ -5,8 +5,6 @@ import { currentMonitor, getCurrentWindow } from "@tauri-apps/api/window";
 const PANEL_WIDTH = 680;
 const GLOW_BLEED = 16;
 const WINDOW_WIDTH = PANEL_WIDTH + GLOW_BLEED * 2;
-/** Safety margin for subpixel rounding at the window edge. */
-const WINDOW_EDGE_PADDING = 4;
 const SCREEN_MARGIN = 16;
 
 async function resolveScreenMaxHeight(): Promise<number> {
@@ -50,9 +48,7 @@ export function useWindowAutoHeight(
       syncRaf = requestAnimationFrame(() => {
         if (!targetRef.current || cancelled) return;
 
-        const height = Math.ceil(
-          measurePanelHeight(targetRef.current) + WINDOW_EDGE_PADDING,
-        );
+        const height = Math.ceil(measurePanelHeight(targetRef.current));
         void getCurrentWindow().setSize(
           new LogicalSize(
             WINDOW_WIDTH,

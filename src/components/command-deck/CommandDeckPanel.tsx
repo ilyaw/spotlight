@@ -168,6 +168,7 @@ export function CommandDeckPanel() {
           {settingsOpen ? (
             <motion.div
               key="settings-view"
+              className="flex max-h-[800px] min-h-0 flex-col overflow-hidden"
               initial={{ opacity: 0, x: 24 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 24 }}
