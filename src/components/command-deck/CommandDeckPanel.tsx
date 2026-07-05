@@ -45,7 +45,6 @@ export function CommandDeckPanel() {
     isLoading,
     scanError,
     refreshApps,
-    removeApp,
   } = useAppLauncher();
 
   const showFilters = shouldShowFilters(filterSettings);
@@ -84,13 +83,6 @@ export function CommandDeckPanel() {
     await launchApp(app);
     await getCurrentWindow().hide();
   }, []);
-
-  const handleRemove = useCallback(
-    (app: LauncherApp) => {
-      removeApp(app.path);
-    },
-    [removeApp],
-  );
 
   const tryAppShortcut = useCallback(
     (event: React.KeyboardEvent): boolean => {
@@ -225,7 +217,6 @@ export function CommandDeckPanel() {
                 isLoading={isLoading}
                 onSelectIndex={setSelectedIndex}
                 onLaunch={(app) => void handleLaunch(app)}
-                onRemove={handleRemove}
               />
             </motion.div>
           )}

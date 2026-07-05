@@ -61,6 +61,7 @@ function loadPersistedSettings(): AppLauncherSettings {
       },
       hasIndexedApps: parsed.hasIndexedApps ?? false,
       indexedApps: parsed.indexedApps ?? [],
+      hiddenAppPaths: parsed.hiddenAppPaths ?? [],
     };
   } catch {
     return { ...DEFAULT_APP_LAUNCHER_SETTINGS };
@@ -199,16 +200,32 @@ export function AppLauncherProvider({ children }: { children: ReactNode }) {
       return {
         ...prev,
         manualApps: [...without, entry],
+        hiddenAppPaths: prev.hiddenAppPaths.filter((p) => p !== entry.path),
       };
     });
   }, []);
 
   const removeApp = useCallback((path: string) => {
-    setPersisted((prev) => ({
-      ...prev,
-      manualApps: prev.manualApps.filter((a) => a.path !== path),
-      overrides: prev.overrides.filter((o) => o.path !== path),
-    }));
+    setPersisted((prev) => {
+      const isManual = prev.manualApps.some((a) => a.path === path);
+      if (isManual) {
+        return {
+          ...prev,
+          manualApps: prev.manualApps.filter((a) => a.path !== path),
+          overrides: prev.overrides.filter((o) => o.path !== path),
+        };
+      }
+
+      const hiddenAppPaths = prev.hiddenAppPaths.includes(path)
+        ? prev.hiddenAppPaths
+        : [...prev.hiddenAppPaths, path];
+
+      return {
+        ...prev,
+        hiddenAppPaths,
+        overrides: prev.overrides.filter((o) => o.path !== path),
+      };
+    });
   }, []);
 
   const setAppShortcut = useCallback(

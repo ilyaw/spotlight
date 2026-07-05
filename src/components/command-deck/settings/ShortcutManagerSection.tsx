@@ -50,12 +50,12 @@ export function ShortcutManagerSection() {
   }, [recordingPath, recordingToggle, setAppShortcut, setHotkey]);
 
   return (
-    <section className="space-y-3">
-      <h3 className="text-[11px] font-semibold tracking-wider text-[var(--color-deck-muted)] uppercase">
+    <section className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden">
+      <h3 className="shrink-0 text-[11px] font-semibold tracking-wider text-[var(--color-deck-muted)] uppercase">
         Диспетчер шорткатов
       </h3>
 
-      <div className="space-y-1.5">
+      <div className="shrink-0 space-y-1.5">
         <p className="text-xs text-[var(--color-deck-muted)]">
           Глобальный шорткат (показать / скрыть)
         </p>
@@ -95,8 +95,8 @@ export function ShortcutManagerSection() {
         </p>
       </div>
 
-      <div className="space-y-1.5">
-        <p className="text-xs text-[var(--color-deck-muted)]">
+      <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-hidden">
+        <p className="shrink-0 text-xs text-[var(--color-deck-muted)]">
           Шорткаты приложений (внутри окна)
         </p>
         {apps.length === 0 ? (
@@ -104,55 +104,57 @@ export function ShortcutManagerSection() {
             Нет приложений для назначения
           </p>
         ) : (
-          apps.map((app) => {
-            const isRecording = recordingPath === app.path;
-            return (
-              <div key={app.path} className="flex items-center gap-2">
-                {app.icon ? (
-                  <img
-                    src={app.icon}
-                    alt=""
-                    className="h-7 w-7 shrink-0 rounded object-contain"
-                  />
-                ) : (
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded deck-surface text-[10px] text-[var(--color-deck-muted)]">
-                    ?
+          <div className="deck-scroll-area min-h-0 flex-1 space-y-1 overflow-y-auto pr-1">
+            {apps.map((app) => {
+              const isRecording = recordingPath === app.path;
+              return (
+                <div key={app.path} className="flex items-center gap-2">
+                  {app.icon ? (
+                    <img
+                      src={app.icon}
+                      alt=""
+                      className="h-7 w-7 shrink-0 rounded object-contain"
+                    />
+                  ) : (
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded deck-surface text-[10px] text-[var(--color-deck-muted)]">
+                      ?
+                    </span>
+                  )}
+                  <span className="min-w-0 flex-1 truncate text-sm">
+                    {app.name}
                   </span>
-                )}
-                <span className="min-w-0 flex-1 truncate text-sm">
-                  {app.name}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRecordingToggle(false);
-                    setRecordingPath(app.path);
-                  }}
-                  className={`font-mono-deck rounded-lg px-2.5 py-1.5 text-[10px] transition-colors ${
-                    isRecording
-                      ? "bg-[var(--color-deck-accent)]/20 text-[var(--color-deck-accent)] ring-1 ring-[var(--color-deck-accent)]/40"
-                      : "deck-surface hover:bg-[var(--color-deck-surface-hover)]"
-                  }`}
-                >
-                  {isRecording
-                    ? "…"
-                    : app.shortcut
-                      ? comboToDisplay(app.shortcut, isMac)
-                      : "Назначить"}
-                </button>
-                {app.shortcut && (
                   <button
                     type="button"
-                    onClick={() => clearAppShortcut(app.path)}
-                    className="rounded p-1 text-[var(--color-deck-muted)] hover:bg-[var(--color-deck-surface-hover)]"
-                    aria-label="Очистить"
+                    onClick={() => {
+                      setRecordingToggle(false);
+                      setRecordingPath(app.path);
+                    }}
+                    className={`font-mono-deck rounded-lg px-2.5 py-1.5 text-[10px] transition-colors ${
+                      isRecording
+                        ? "bg-[var(--color-deck-accent)]/20 text-[var(--color-deck-accent)] ring-1 ring-[var(--color-deck-accent)]/40"
+                        : "deck-surface hover:bg-[var(--color-deck-surface-hover)]"
+                    }`}
                   >
-                    <RotateCcw className="h-3 w-3" />
+                    {isRecording
+                      ? "…"
+                      : app.shortcut
+                        ? comboToDisplay(app.shortcut, isMac)
+                        : "Назначить"}
                   </button>
-                )}
-              </div>
-            );
-          })
+                  {app.shortcut && (
+                    <button
+                      type="button"
+                      onClick={() => clearAppShortcut(app.path)}
+                      className="rounded p-1 text-[var(--color-deck-muted)] hover:bg-[var(--color-deck-surface-hover)]"
+                      aria-label="Очистить"
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </section>

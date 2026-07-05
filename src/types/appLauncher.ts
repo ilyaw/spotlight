@@ -51,6 +51,8 @@ export type AppLauncherSettings = {
   /** System apps indexed on the very first launch; not re-scanned afterwards. */
   hasIndexedApps: boolean;
   indexedApps: InstalledApp[];
+  /** Paths of system apps hidden from the launcher by the user. */
+  hiddenAppPaths: string[];
 };
 
 export const APP_LAUNCHER_STORAGE_KEY = "spotlight-app-launcher-settings";
@@ -68,6 +70,7 @@ export const DEFAULT_APP_LAUNCHER_SETTINGS: AppLauncherSettings = {
   filterSettings: DEFAULT_FILTER_SETTINGS,
   hasIndexedApps: false,
   indexedApps: [],
+  hiddenAppPaths: [],
 };
 
 export function resolveLayout(
@@ -93,9 +96,11 @@ export function mergeApps(
   const overrideByPath = new Map(
     settings.overrides.map((o) => [o.path, o]),
   );
+  const hiddenPaths = new Set(settings.hiddenAppPaths);
   const byPath = new Map<string, LauncherApp>();
 
   for (const app of scanned) {
+    if (hiddenPaths.has(app.path)) continue;
     const override = overrideByPath.get(app.path);
     byPath.set(app.path, {
       ...app,

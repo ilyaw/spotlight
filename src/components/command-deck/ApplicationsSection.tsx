@@ -1,8 +1,6 @@
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
-import { open } from "@tauri-apps/plugin-dialog";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import type { LauncherApp } from "../../types/appLauncher";
-import { AddAppModal } from "./AddAppModal";
 import { AppListItem } from "./AppListItem";
 
 type ApplicationsSectionProps = {
@@ -12,7 +10,6 @@ type ApplicationsSectionProps = {
   isLoading?: boolean;
   onSelectIndex: (index: number) => void;
   onLaunch: (app: LauncherApp) => void;
-  onRemove?: (app: LauncherApp) => void;
 };
 
 export function ApplicationsSection({
@@ -22,9 +19,7 @@ export function ApplicationsSection({
   isLoading = false,
   onSelectIndex,
   onLaunch,
-  onRemove,
 }: ApplicationsSectionProps) {
-  const [pendingPath, setPendingPath] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -34,33 +29,11 @@ export function ApplicationsSection({
     el?.scrollIntoView({ block: "nearest" });
   }, [selectedIndex]);
 
-  const handleAdd = async () => {
-    const selected = await open({
-      multiple: false,
-      directory: false,
-      filters: [
-        { name: "Applications", extensions: ["app", "exe", "bat", "sh"] },
-      ],
-    });
-    if (typeof selected === "string") {
-      setPendingPath(selected);
-    }
-  };
-
   return (
-    <section className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 pb-3">
-      <div className="mb-2 flex shrink-0 items-center justify-between">
-        <h2 className="text-[11px] font-semibold tracking-wider text-[var(--color-deck-muted)] uppercase">
-          Приложения
-        </h2>
-        <button
-          type="button"
-          onClick={() => void handleAdd()}
-          className="rounded-md border deck-border px-2.5 py-1 text-xs text-[var(--color-deck-muted)] transition-colors hover:bg-[var(--color-deck-surface-hover)] hover:text-[var(--color-deck-text)]"
-        >
-          + Добавить
-        </button>
-      </div>
+    <section className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 pt-3 pb-3">
+      <h2 className="mb-2 shrink-0 text-[11px] font-semibold tracking-wider text-[var(--color-deck-muted)] uppercase">
+        Приложения
+      </h2>
 
       {isLoading ? (
         <div className="space-y-2 py-2">
@@ -100,24 +73,12 @@ export function ApplicationsSection({
                     onSelect={() => onSelectIndex(index)}
                     onLaunch={() => onLaunch(app)}
                     onHover={() => onSelectIndex(index)}
-                    onRemove={
-                      app.source === "manual" && onRemove
-                        ? () => onRemove(app)
-                        : undefined
-                    }
                   />
                 ))}
               </AnimatePresence>
             </motion.div>
           </LayoutGroup>
         </div>
-      )}
-
-      {pendingPath && (
-        <AddAppModal
-          path={pendingPath}
-          onClose={() => setPendingPath(null)}
-        />
       )}
     </section>
   );

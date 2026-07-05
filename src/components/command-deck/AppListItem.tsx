@@ -1,5 +1,4 @@
 import { motion } from "framer-motion";
-import { X } from "lucide-react";
 import { comboToDisplay } from "../../types/hotkey";
 import { isMacPlatform } from "../../lib/platform";
 import type { LauncherApp } from "../../types/appLauncher";
@@ -12,7 +11,6 @@ type AppListItemProps = {
   onSelect: () => void;
   onLaunch: () => void;
   onHover: () => void;
-  onRemove?: () => void;
 };
 
 export function AppListItem({
@@ -23,11 +21,9 @@ export function AppListItem({
   onSelect,
   onLaunch,
   onHover,
-  onRemove,
 }: AppListItemProps) {
   const isList = layout === "list";
   const isMac = isMacPlatform();
-  const canRemove = app.source === "manual" && onRemove;
 
   return (
     <motion.div
@@ -39,9 +35,7 @@ export function AppListItem({
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.96 }}
       transition={{ type: "spring", stiffness: 500, damping: 35 }}
-      className={`group relative ${
-        isList ? "w-full" : ""
-      }`}
+      className={isList ? "w-full" : ""}
     >
       <button
         type="button"
@@ -89,22 +83,6 @@ export function AppListItem({
           </kbd>
         )}
       </button>
-
-      {canRemove && (
-        <button
-          type="button"
-          aria-label={`Удалить ${app.name}`}
-          onClick={(event) => {
-            event.stopPropagation();
-            onRemove();
-          }}
-          className={`absolute z-10 flex h-5 w-5 items-center justify-center rounded-md border deck-border bg-[var(--color-deck-bg)] text-[var(--color-deck-muted)] opacity-0 transition-opacity hover:bg-red-500/20 hover:text-red-300 group-hover:opacity-100 group-focus-within:opacity-100 ${
-            isList ? "top-1/2 right-2 -translate-y-1/2" : "top-1.5 right-1.5"
-          }`}
-        >
-          <X className="h-3 w-3" strokeWidth={2.5} />
-        </button>
-      )}
     </motion.div>
   );
 }

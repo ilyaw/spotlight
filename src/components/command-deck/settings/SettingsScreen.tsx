@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { AppsManagerSection } from "./AppsManagerSection";
 import { AppearanceSection } from "./AppearanceSection";
 import { CategoriesSection } from "./CategoriesSection";
 import { LauncherModeSection } from "./LauncherModeSection";
@@ -15,6 +16,8 @@ function SettingsContent({ tab }: { tab: SettingsTab }) {
   switch (tab) {
     case "launcher":
       return <LauncherModeSection />;
+    case "apps":
+      return <AppsManagerSection />;
     case "categories":
       return <CategoriesSection />;
     case "shortcuts":

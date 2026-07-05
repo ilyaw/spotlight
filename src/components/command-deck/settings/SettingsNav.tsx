@@ -1,5 +1,6 @@
 export type SettingsTab =
   | "launcher"
+  | "apps"
   | "categories"
   | "shortcuts"
   | "appearance";
@@ -11,6 +12,7 @@ type SettingsNavProps = {
 
 const TABS: { id: SettingsTab; label: string }[] = [
   { id: "launcher", label: "Режим" },
+  { id: "apps", label: "Приложения" },
   { id: "categories", label: "Категории" },
   { id: "shortcuts", label: "Горячие клавиши" },
   { id: "appearance", label: "Оформление" },
