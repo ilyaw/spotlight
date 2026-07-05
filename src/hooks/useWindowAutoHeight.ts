@@ -2,10 +2,20 @@ import { useLayoutEffect, useRef, type RefObject } from "react";
 import { LogicalSize } from "@tauri-apps/api/dpi";
 import { currentMonitor, getCurrentWindow } from "@tauri-apps/api/window";
 
-const PANEL_WIDTH = 680;
 const GLOW_BLEED = 16;
-const WINDOW_WIDTH = PANEL_WIDTH + GLOW_BLEED * 2;
 const SCREEN_MARGIN = 16;
+
+const MAIN_PANEL_WIDTH = 680;
+const SETTINGS_PANEL_WIDTH = 960;
+const SETTINGS_PANEL_HEIGHT = 840;
+
+export { SETTINGS_PANEL_HEIGHT, SETTINGS_PANEL_WIDTH };
+
+export type PanelView = "main" | "settings";
+
+function windowWidthForPanel(panelWidth: number): number {
+  return panelWidth + GLOW_BLEED * 2;
+}
 
 async function resolveScreenMaxHeight(): Promise<number> {
   try {
@@ -21,11 +31,17 @@ async function resolveScreenMaxHeight(): Promise<number> {
 }
 
 function measurePanelHeight(root: HTMLElement): number {
-  // Full container height including glow bleed padding.
   return root.offsetHeight;
 }
 
+export function panelMaxWidth(view: PanelView): number {
+  const panelWidth =
+    view === "settings" ? SETTINGS_PANEL_WIDTH : MAIN_PANEL_WIDTH;
+  return windowWidthForPanel(panelWidth);
+}
+
 export function useWindowAutoHeight(
+  view: PanelView,
   deps: unknown[] = [],
 ): RefObject<HTMLDivElement | null> {
   const targetRef = useRef<HTMLDivElement | null>(null);
@@ -38,6 +54,10 @@ export function useWindowAutoHeight(
     let cancelled = false;
     let syncRaf = 0;
 
+    const panelWidth =
+      view === "settings" ? SETTINGS_PANEL_WIDTH : MAIN_PANEL_WIDTH;
+    const windowWidth = windowWidthForPanel(panelWidth);
+
     const refreshScreenMax = async () => {
       screenMaxHeight = await resolveScreenMaxHeight();
       if (!cancelled) sync();
@@ -48,10 +68,14 @@ export function useWindowAutoHeight(
       syncRaf = requestAnimationFrame(() => {
         if (!targetRef.current || cancelled) return;
 
-        const height = Math.ceil(measurePanelHeight(targetRef.current));
+        const height =
+          view === "settings"
+            ? SETTINGS_PANEL_HEIGHT + GLOW_BLEED * 2
+            : Math.ceil(measurePanelHeight(targetRef.current));
+
         void getCurrentWindow().setSize(
           new LogicalSize(
-            WINDOW_WIDTH,
+            windowWidth,
             Math.min(Math.max(height, 80), screenMaxHeight),
           ),
         );
@@ -59,6 +83,14 @@ export function useWindowAutoHeight(
     };
 
     void refreshScreenMax();
+    sync();
+
+    if (view === "settings") {
+      return () => {
+        cancelled = true;
+        cancelAnimationFrame(syncRaf);
+      };
+    }
 
     const observed = new WeakSet<Element>();
 
@@ -96,7 +128,7 @@ export function useWindowAutoHeight(
       mutationObserver.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
+  }, [view, ...deps]);
 
   return targetRef;
 }

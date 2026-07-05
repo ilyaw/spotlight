@@ -16,7 +16,11 @@ import {
   hasModifier,
   isModifierCode,
 } from "../../types/hotkey";
-import { useWindowAutoHeight } from "../../hooks/useWindowAutoHeight";
+import {
+  panelMaxWidth,
+  SETTINGS_PANEL_HEIGHT,
+  useWindowAutoHeight,
+} from "../../hooks/useWindowAutoHeight";
 import { CommandDeckSearch } from "./CommandDeckSearch";
 import { FilterTags } from "./FilterTags";
 import {
@@ -52,8 +56,7 @@ export function CommandDeckPanel() {
   );
   const layout = resolveLayout(layoutMode, filteredApps.length);
 
-  const panelRef = useWindowAutoHeight([
-    view,
+  const panelRef = useWindowAutoHeight(view, [
     filteredApps.length,
     layout,
     query,
@@ -97,6 +100,7 @@ export function CommandDeckPanel() {
       const combo = comboFromEvent(event);
       if (!hasModifier(combo)) return false;
 
+      // Per-app shortcuts match against the full app list, not the active filter.
       const matched = apps.find(
         (a) => a.shortcut && combosEqual(a.shortcut, combo),
       );
@@ -157,7 +161,8 @@ export function CommandDeckPanel() {
       initial={{ opacity: 0, scale: 0.96, y: -8 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
-      className={`spotlight-glow-bleed w-full max-w-[712px]${isWindowsPlatform() ? " spotlight-panel-shadow" : ""}`}
+      className={`spotlight-glow-bleed w-full${isWindowsPlatform() ? " spotlight-panel-shadow" : ""}`}
+      style={{ maxWidth: panelMaxWidth(view) }}
     >
       <RgbBorderWrapper
         variant="full-panel"
@@ -168,7 +173,8 @@ export function CommandDeckPanel() {
           {settingsOpen ? (
             <motion.div
               key="settings-view"
-              className="flex max-h-[800px] min-h-0 flex-col overflow-hidden"
+              className="flex min-h-0 flex-col overflow-hidden"
+              style={{ height: SETTINGS_PANEL_HEIGHT }}
               initial={{ opacity: 0, x: 24 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 24 }}

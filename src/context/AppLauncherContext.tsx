@@ -32,7 +32,9 @@ type AppLauncherContextValue = {
   removeApp: (path: string) => void;
   setAppShortcut: (path: string, shortcut: HotkeyCombo | null) => void;
   clearAppShortcut: (path: string) => void;
-  setAppCategories: (path: string, categoryIds: string[]) => void;
+  updateAppCategories: (path: string, categoryIds: string[]) => void;
+  addAppToCategory: (path: string, categoryId: string) => void;
+  removeAppFromCategory: (path: string, categoryId: string) => void;
   setFilterSettings: (settings: FilterSettings) => void;
   addFilter: (label: string) => void;
   updateFilter: (id: string, label: string) => void;
@@ -92,6 +94,31 @@ function upsertOverride(
   const next = [...overrides];
   next[index] = { ...next[index], ...patch, path };
   return next;
+}
+
+function applyCategoryUpdate(
+  prev: AppLauncherSettings,
+  path: string,
+  categoryIds: string[],
+): AppLauncherSettings {
+  const isManual = prev.manualApps.some((a) => a.path === path);
+  if (isManual) {
+    return {
+      ...prev,
+      manualApps: prev.manualApps.map((a) =>
+        a.path === path ? { ...a, categoryIds } : a,
+      ),
+    };
+  }
+
+  const existing = prev.overrides.find((o) => o.path === path);
+  return {
+    ...prev,
+    overrides: upsertOverride(prev.overrides, path, {
+      categoryIds,
+      shortcut: existing?.shortcut ?? null,
+    }),
+  };
 }
 
 export function AppLauncherProvider({ children }: { children: ReactNode }) {
@@ -201,12 +228,34 @@ export function AppLauncherProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
-  const setAppCategories = useCallback(
+  const updateAppCategories = useCallback(
     (path: string, categoryIds: string[]) => {
-      setPersisted((prev) => ({
-        ...prev,
-        overrides: upsertOverride(prev.overrides, path, { categoryIds }),
-      }));
+      setPersisted((prev) => applyCategoryUpdate(prev, path, categoryIds));
+    },
+    [],
+  );
+
+  const addAppToCategory = useCallback((path: string, categoryId: string) => {
+    setPersisted((prev) => {
+      const app = mergeApps(prev.indexedApps, prev).find((a) => a.path === path);
+      if (!app || app.categoryIds.includes(categoryId)) return prev;
+      return applyCategoryUpdate(prev, path, [...app.categoryIds, categoryId]);
+    });
+  }, []);
+
+  const removeAppFromCategory = useCallback(
+    (path: string, categoryId: string) => {
+      setPersisted((prev) => {
+        const app = mergeApps(prev.indexedApps, prev).find(
+          (a) => a.path === path,
+        );
+        if (!app) return prev;
+        return applyCategoryUpdate(
+          prev,
+          path,
+          app.categoryIds.filter((id) => id !== categoryId),
+        );
+      });
     },
     [],
   );
@@ -282,7 +331,9 @@ export function AppLauncherProvider({ children }: { children: ReactNode }) {
       removeApp,
       setAppShortcut,
       clearAppShortcut,
-      setAppCategories,
+      updateAppCategories,
+      addAppToCategory,
+      removeAppFromCategory,
       setFilterSettings,
       addFilter,
       updateFilter,
@@ -301,7 +352,9 @@ export function AppLauncherProvider({ children }: { children: ReactNode }) {
       removeApp,
       setAppShortcut,
       clearAppShortcut,
-      setAppCategories,
+      updateAppCategories,
+      addAppToCategory,
+      removeAppFromCategory,
       setFilterSettings,
       addFilter,
       updateFilter,

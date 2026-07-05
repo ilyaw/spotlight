@@ -1,4 +1,4 @@
-import { LayoutGroup, motion } from "framer-motion";
+import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useEffect, useRef, useState } from "react";
 import type { LauncherApp } from "../../types/appLauncher";
@@ -89,23 +89,25 @@ export function ApplicationsSection({
                   : "grid grid-cols-3 gap-2 pb-1"
               }
             >
-              {apps.map((app, index) => (
-                <AppListItem
-                  key={app.path}
-                  app={app}
-                  layout={layout}
-                  index={index}
-                  selected={index === selectedIndex}
-                  onSelect={() => onSelectIndex(index)}
-                  onLaunch={() => onLaunch(app)}
-                  onHover={() => onSelectIndex(index)}
-                  onRemove={
-                    app.source === "manual" && onRemove
-                      ? () => onRemove(app)
-                      : undefined
-                  }
-                />
-              ))}
+              <AnimatePresence mode="popLayout" initial={false}>
+                {apps.map((app, index) => (
+                  <AppListItem
+                    key={app.path}
+                    app={app}
+                    layout={layout}
+                    index={index}
+                    selected={index === selectedIndex}
+                    onSelect={() => onSelectIndex(index)}
+                    onLaunch={() => onLaunch(app)}
+                    onHover={() => onSelectIndex(index)}
+                    onRemove={
+                      app.source === "manual" && onRemove
+                        ? () => onRemove(app)
+                        : undefined
+                    }
+                  />
+                ))}
+              </AnimatePresence>
             </motion.div>
           </LayoutGroup>
         </div>
