@@ -10,8 +10,8 @@ type SettingsScreenProps = {
 
 export function SettingsScreen({ onBack }: SettingsScreenProps) {
   return (
-    <div className="flex max-h-[480px] flex-col">
-      <header className="flex items-center gap-2 border-b deck-border px-4 py-3">
+    <div className="flex flex-col">
+      <header className="flex shrink-0 items-center gap-2 border-b deck-border px-4 py-3">
         <button
           type="button"
           onClick={onBack}
@@ -23,7 +23,7 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
         <h1 className="text-base font-semibold">Настройки</h1>
       </header>
 
-      <div className="flex-1 space-y-6 overflow-y-auto px-4 py-4">
+      <div className="deck-scroll-area max-h-[700px] space-y-6 overflow-y-auto px-4 py-4">
         <LauncherModeSection />
         <CategoriesSection />
         <ShortcutManagerSection />

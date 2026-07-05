@@ -6,6 +6,7 @@ import type { LauncherApp } from "../../types/appLauncher";
 type AppListItemProps = {
   app: LauncherApp;
   layout: "list" | "grid";
+  index: number;
   selected: boolean;
   onSelect: () => void;
   onLaunch: () => void;
@@ -15,6 +16,7 @@ type AppListItemProps = {
 export function AppListItem({
   app,
   layout,
+  index,
   selected,
   onSelect,
   onLaunch,
@@ -28,6 +30,7 @@ export function AppListItem({
       type="button"
       layout
       layoutId={app.path}
+      data-app-index={index}
       onClick={() => {
         onSelect();
         onLaunch();

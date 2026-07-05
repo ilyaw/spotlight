@@ -23,7 +23,6 @@ import {
   ApplicationsSection,
   useFilteredApps,
 } from "./ApplicationsSection";
-import { KeyboardFooter } from "./KeyboardFooter";
 import { SettingsScreen } from "./settings/SettingsScreen";
 
 type View = "main" | "settings";
@@ -176,6 +175,7 @@ export function CommandDeckPanel() {
           ) : (
             <motion.div
               key="main-view"
+              className="flex min-h-0 max-h-[800px] flex-col overflow-hidden"
               initial={{ opacity: 0, x: -24 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -24 }}
@@ -211,7 +211,6 @@ export function CommandDeckPanel() {
                 onSelectIndex={setSelectedIndex}
                 onLaunch={(app) => void handleLaunch(app)}
               />
-              <KeyboardFooter />
             </motion.div>
           )}
         </AnimatePresence>

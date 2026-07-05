@@ -1,6 +1,6 @@
 import { LayoutGroup, motion } from "framer-motion";
 import { open } from "@tauri-apps/plugin-dialog";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { LauncherApp } from "../../types/appLauncher";
 import { AddAppModal } from "./AddAppModal";
 import { AppListItem } from "./AppListItem";
@@ -23,6 +23,14 @@ export function ApplicationsSection({
   onLaunch,
 }: ApplicationsSectionProps) {
   const [pendingPath, setPendingPath] = useState<string | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = scrollRef.current?.querySelector(
+      `[data-app-index="${selectedIndex}"]`,
+    );
+    el?.scrollIntoView({ block: "nearest" });
+  }, [selectedIndex]);
 
   const handleAdd = async () => {
     const selected = await open({
@@ -38,8 +46,8 @@ export function ApplicationsSection({
   };
 
   return (
-    <section className="px-4 pb-3">
-      <div className="mb-2 flex items-center justify-between">
+    <section className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 pb-3">
+      <div className="mb-2 flex shrink-0 items-center justify-between">
         <h2 className="text-[11px] font-semibold tracking-wider text-[var(--color-deck-muted)] uppercase">
           Приложения
         </h2>
@@ -66,28 +74,33 @@ export function ApplicationsSection({
           Приложения не найдены
         </p>
       ) : (
-        <LayoutGroup>
-          <motion.div
-            layout
-            className={
-              layout === "list"
-                ? "flex flex-col gap-0.5"
-                : "grid grid-cols-3 gap-2"
-            }
-          >
-            {apps.map((app, index) => (
-              <AppListItem
-                key={app.path}
-                app={app}
-                layout={layout}
-                selected={index === selectedIndex}
-                onSelect={() => onSelectIndex(index)}
-                onLaunch={() => onLaunch(app)}
-                onHover={() => onSelectIndex(index)}
-              />
-            ))}
-          </motion.div>
-        </LayoutGroup>
+        <div className="relative min-h-0 flex-1 overflow-hidden">
+          <div ref={scrollRef} className="deck-scroll-area h-full min-h-0 px-1.5 pt-1.5">
+            <LayoutGroup>
+              <motion.div
+                layout
+                className={
+                  layout === "list"
+                    ? "flex flex-col gap-0.5"
+                    : "grid grid-cols-3 gap-2 pb-1"
+                }
+              >
+                {apps.map((app, index) => (
+                  <AppListItem
+                    key={app.path}
+                    app={app}
+                    layout={layout}
+                    index={index}
+                    selected={index === selectedIndex}
+                    onSelect={() => onSelectIndex(index)}
+                    onLaunch={() => onLaunch(app)}
+                    onHover={() => onSelectIndex(index)}
+                  />
+                ))}
+              </motion.div>
+            </LayoutGroup>
+          </div>
+        </div>
       )}
 
       {pendingPath && (

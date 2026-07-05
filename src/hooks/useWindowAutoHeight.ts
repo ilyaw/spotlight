@@ -4,6 +4,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 
 const WINDOW_WIDTH = 680;
 const BOTTOM_PADDING = 12;
+const MAX_WINDOW_HEIGHT = 800;
 
 export function useWindowAutoHeight(
   deps: unknown[] = [],
@@ -20,7 +21,10 @@ export function useWindowAutoHeight(
           el.getBoundingClientRect().bottom + BOTTOM_PADDING,
         );
         void getCurrentWindow().setSize(
-          new LogicalSize(WINDOW_WIDTH, Math.max(height, 80)),
+          new LogicalSize(
+            WINDOW_WIDTH,
+            Math.min(Math.max(height, 80), MAX_WINDOW_HEIGHT),
+          ),
         );
       });
     };

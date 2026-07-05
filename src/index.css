@@ -67,6 +67,15 @@ body,
 
 #root {
   overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+input,
+textarea,
+[contenteditable="true"] {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 html::-webkit-scrollbar,
@@ -112,6 +121,21 @@ body {
 
 .spotlight-panel-shadow {
   filter: drop-shadow(0 16px 40px rgb(0 0 0 / 0.55));
+}
+
+.deck-scroll-area {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.deck-scroll-area::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
 }
 
 /* ── RGB border wrapper ── */
