@@ -31,6 +31,16 @@
   }
 }
 
+@keyframes neon-pulse {
+  0%,
+  100% {
+    filter: brightness(1) saturate(1);
+  }
+  50% {
+    filter: brightness(1.35) saturate(1.5);
+  }
+}
+
 /* Theme tokens */
 :root,
 [data-theme="dark"] {
@@ -259,7 +269,19 @@ body {
 
 .rgb-preset-rainbow .rgb-border-gradient,
 .rgb-preset-rainbow .rgb-border-backdrop-glow,
-.rgb-preset-rainbow .deck-ambient-bg {
+.rgb-preset-rainbow .deck-ambient-bg,
+.rgb-preset-sunset .rgb-border-gradient,
+.rgb-preset-sunset .rgb-border-backdrop-glow,
+.rgb-preset-sunset .deck-ambient-bg,
+.rgb-preset-ocean .rgb-border-gradient,
+.rgb-preset-ocean .rgb-border-backdrop-glow,
+.rgb-preset-ocean .deck-ambient-bg,
+.rgb-preset-lava .rgb-border-gradient,
+.rgb-preset-lava .rgb-border-backdrop-glow,
+.rgb-preset-lava .deck-ambient-bg,
+.rgb-preset-aurora .rgb-border-gradient,
+.rgb-preset-aurora .rgb-border-backdrop-glow,
+.rgb-preset-aurora .deck-ambient-bg {
   background: linear-gradient(
     var(--gradient-angle),
     var(--rgb-color-1),
@@ -269,4 +291,38 @@ body {
   );
   background-size: 200% 200%;
   animation: rgb-sweep var(--rgb-duration) linear infinite;
+}
+
+.rgb-preset-cyberpunk .rgb-border-gradient,
+.rgb-preset-cyberpunk .rgb-border-backdrop-glow,
+.rgb-preset-cyberpunk .deck-ambient-bg,
+.rgb-preset-toxic .rgb-border-gradient,
+.rgb-preset-toxic .rgb-border-backdrop-glow,
+.rgb-preset-toxic .deck-ambient-bg,
+.rgb-preset-synthwave .rgb-border-gradient,
+.rgb-preset-synthwave .rgb-border-backdrop-glow,
+.rgb-preset-synthwave .deck-ambient-bg {
+  background: conic-gradient(
+    from var(--gradient-angle),
+    var(--rgb-color-1),
+    var(--rgb-color-2),
+    var(--rgb-color-3),
+    var(--rgb-color-1)
+  );
+  animation: rgb-spin var(--rgb-duration) linear infinite;
+}
+
+.rgb-preset-neon-pulse .rgb-border-gradient,
+.rgb-preset-neon-pulse .rgb-border-backdrop-glow,
+.rgb-preset-neon-pulse .deck-ambient-bg {
+  background: conic-gradient(
+    from var(--gradient-angle),
+    var(--rgb-color-1),
+    var(--rgb-color-2),
+    var(--rgb-color-3),
+    var(--rgb-color-1)
+  );
+  animation:
+    rgb-spin var(--rgb-duration) linear infinite,
+    neon-pulse calc(var(--rgb-duration) * 1.5) ease-in-out infinite;
 }

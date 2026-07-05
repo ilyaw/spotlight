@@ -10,6 +10,7 @@ import {
 import {
   DEFAULT_RGB_SETTINGS,
   getPresetGradient,
+  RGB_PRESETS,
   RGB_STORAGE_KEY,
   type RgbEffectSettings,
   type RgbGradient,
@@ -35,16 +36,25 @@ const RgbEffectContext = createContext<RgbEffectContextValue | null>(null);
 
 function migrateSettings(parsed: Partial<RgbEffectSettings>): RgbEffectSettings {
   const presetMap: Record<string, RgbPreset> = {
-    cyberpunk: "two-color",
+    cyberpunk: "cyberpunk",
     "rainbow-wave": "rainbow",
-    "neon-pulse": "rainbow",
+    "neon-pulse": "neon-pulse",
     static: "static",
     "two-color": "two-color",
     rainbow: "rainbow",
+    sunset: "sunset",
+    ocean: "ocean",
+    toxic: "toxic",
+    lava: "lava",
+    aurora: "aurora",
+    synthwave: "synthwave",
   };
 
   const rawPreset = parsed.preset as string | undefined;
-  const preset = rawPreset ? (presetMap[rawPreset] ?? "rainbow") : DEFAULT_RGB_SETTINGS.preset;
+  const preset = rawPreset
+    ? (presetMap[rawPreset] ??
+      (rawPreset in RGB_PRESETS ? (rawPreset as RgbPreset) : "rainbow"))
+    : DEFAULT_RGB_SETTINGS.preset;
 
   return {
     ...DEFAULT_RGB_SETTINGS,

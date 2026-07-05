@@ -1,16 +1,11 @@
 import { useRgbEffect } from "../../../context/RgbEffectContext";
 import { useTheme } from "../../../context/ThemeContext";
 import {
-  RGB_PRESET_GRADIENTS,
+  isPresetAnimated,
+  RGB_PRESET_LIST,
+  RGB_PRESETS,
   type RgbGradientDirection,
-  type RgbPreset,
 } from "../../../types/rgbEffect";
-
-const PRESETS: { id: RgbPreset; label: string }[] = [
-  { id: "static", label: "Статичный" },
-  { id: "two-color", label: "Двухцветный" },
-  { id: "rainbow", label: "Радуга" },
-];
 
 const DIRECTIONS: { id: RgbGradientDirection; label: string }[] = [
   { id: "clockwise", label: "По часовой стрелке" },
@@ -39,6 +34,9 @@ export function AppearanceSection() {
     thickness,
     glowIntensity,
   } = settings;
+
+  const animated = isPresetAnimated(preset);
+  const previewColors = RGB_PRESETS[preset].gradient.colors;
 
   return (
     <section className="space-y-4">
@@ -97,21 +95,39 @@ export function AppearanceSection() {
         <span className="text-xs text-[var(--color-deck-muted)]">
           Стиль градиента
         </span>
-        <div className="flex gap-1 rounded-lg deck-surface p-1">
-          {PRESETS.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => setPreset(p.id)}
-              className={`flex-1 rounded-md py-1.5 text-[10px] transition-colors ${
-                preset === p.id
-                  ? "bg-[var(--color-deck-surface-hover)] text-[var(--color-deck-text)]"
-                  : "text-[var(--color-deck-muted)]"
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
+        <div className="grid grid-cols-3 gap-1.5 rounded-lg deck-surface p-1.5">
+          {RGB_PRESET_LIST.map((p) => {
+            const colors = RGB_PRESETS[p.id].gradient.colors;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setPreset(p.id)}
+                className={`overflow-hidden rounded-md border transition-colors ${
+                  preset === p.id
+                    ? "border-[var(--color-deck-accent)] bg-[var(--color-deck-surface-hover)]"
+                    : "border-transparent hover:border-[var(--color-deck-border)]"
+                }`}
+              >
+                <div
+                  className="h-5 w-full"
+                  style={{
+                    background: `linear-gradient(90deg, ${colors.join(", ")})`,
+                  }}
+                  aria-hidden
+                />
+                <span
+                  className={`block px-1 py-1 text-center text-[9px] leading-tight ${
+                    preset === p.id
+                      ? "text-[var(--color-deck-text)]"
+                      : "text-[var(--color-deck-muted)]"
+                  }`}
+                >
+                  {p.label}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -124,7 +140,7 @@ export function AppearanceSection() {
           onChange={(e) =>
             setDirection(e.target.value as RgbGradientDirection)
           }
-          disabled={preset === "static"}
+          disabled={!animated}
           className="w-full rounded-lg deck-surface px-3 py-2 text-sm text-[var(--color-deck-text)] outline-none disabled:opacity-50"
         >
           {DIRECTIONS.map((d) => (
@@ -163,13 +179,13 @@ export function AppearanceSection() {
         step={1}
         display={String(speed)}
         onChange={setSpeed}
-        disabled={preset === "static"}
+        disabled={!animated}
       />
 
       <div
         className="h-2 overflow-hidden rounded-full"
         style={{
-          background: `linear-gradient(90deg, ${RGB_PRESET_GRADIENTS[preset].colors.join(", ")})`,
+          background: `linear-gradient(90deg, ${previewColors.join(", ")})`,
         }}
         aria-hidden
       />
