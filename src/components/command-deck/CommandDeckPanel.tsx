@@ -89,15 +89,32 @@ export function CommandDeckPanel() {
     await getCurrentWindow().hide();
   }, []);
 
+  const isEditableShortcutBlocked = useCallback(
+    (target: EventTarget | null): boolean => {
+      if (!(target instanceof Node)) return false;
+      const element =
+        target instanceof HTMLElement ? target : target.parentElement;
+      if (!element) return false;
+
+      const field = element.closest(
+        'input, textarea, select, [contenteditable="true"]',
+      );
+      if (!field) return false;
+
+      return field !== inputRef.current;
+    },
+    [],
+  );
+
   const tryAppShortcut = useCallback(
-    (event: React.KeyboardEvent): boolean => {
-      if (view !== "main") return false;
+    (event: KeyboardEvent | React.KeyboardEvent): boolean => {
+      if (event.defaultPrevented) return false;
+      if (isEditableShortcutBlocked(event.target)) return false;
       if (isModifierCode(event.code)) return false;
 
       const combo = comboFromEvent(event);
       if (!hasModifier(combo)) return false;
 
-      // Per-app shortcuts match against the full app list, not the active filter.
       const matched = apps.find(
         (a) => a.shortcut && combosEqual(a.shortcut, combo),
       );
@@ -107,13 +124,20 @@ export function CommandDeckPanel() {
       void handleLaunch(matched);
       return true;
     },
-    [apps, handleLaunch, view],
+    [apps, handleLaunch, isEditableShortcutBlocked],
   );
+
+  useEffect(() => {
+    const handleWindowKeyDown = (event: KeyboardEvent) => {
+      tryAppShortcut(event);
+    };
+
+    window.addEventListener("keydown", handleWindowKeyDown);
+    return () => window.removeEventListener("keydown", handleWindowKeyDown);
+  }, [tryAppShortcut]);
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLInputElement>) => {
-      if (tryAppShortcut(event)) return;
-
       if (view === "settings") {
         if (event.key === "Escape") {
           event.preventDefault();
@@ -147,7 +171,7 @@ export function CommandDeckPanel() {
           break;
       }
     },
-    [view, filteredApps, selectedIndex, handleLaunch, tryAppShortcut],
+    [view, filteredApps, selectedIndex, handleLaunch],
   );
 
   const settingsOpen = view === "settings";
