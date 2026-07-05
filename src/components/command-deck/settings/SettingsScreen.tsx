@@ -7,6 +7,7 @@ import { CategoriesSection } from "./CategoriesSection";
 import { LauncherModeSection } from "./LauncherModeSection";
 import { SettingsNav, type SettingsTab } from "./SettingsNav";
 import { ShortcutManagerSection } from "./ShortcutManagerSection";
+import { SystemSection } from "./SystemSection";
 
 type SettingsScreenProps = {
   onBack: () => void;
@@ -24,6 +25,8 @@ function SettingsContent({ tab }: { tab: SettingsTab }) {
       return <ShortcutManagerSection />;
     case "appearance":
       return <AppearanceSection />;
+    case "system":
+      return <SystemSection />;
   }
 }
 

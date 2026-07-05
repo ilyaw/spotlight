@@ -20,6 +20,8 @@ type HotkeyContextValue = {
   setHotkey: (combo: HotkeyCombo) => void;
   resetHotkey: () => void;
   error: string | null;
+  isRecording: boolean;
+  setHotkeyRecording: (active: boolean) => void;
 };
 
 const HotkeyContext = createContext<HotkeyContextValue | null>(null);
@@ -55,6 +57,7 @@ function persistHotkey(combo: HotkeyCombo) {
 export function HotkeyProvider({ children }: { children: ReactNode }) {
   const [hotkey, setHotkeyState] = useState<HotkeyCombo>(loadHotkey);
   const [error, setError] = useState<string | null>(null);
+  const [isRecording, setHotkeyRecording] = useState(false);
 
   useEffect(() => {
     persistHotkey(hotkey);
@@ -84,8 +87,15 @@ export function HotkeyProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<HotkeyContextValue>(
-    () => ({ hotkey, setHotkey, resetHotkey, error }),
-    [hotkey, setHotkey, resetHotkey, error],
+    () => ({
+      hotkey,
+      setHotkey,
+      resetHotkey,
+      error,
+      isRecording,
+      setHotkeyRecording,
+    }),
+    [hotkey, setHotkey, resetHotkey, error, isRecording],
   );
 
   return (

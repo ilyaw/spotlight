@@ -3,7 +3,8 @@ export type SettingsTab =
   | "apps"
   | "categories"
   | "shortcuts"
-  | "appearance";
+  | "appearance"
+  | "system";
 
 type SettingsNavProps = {
   active: SettingsTab;
@@ -16,6 +17,7 @@ const TABS: { id: SettingsTab; label: string }[] = [
   { id: "categories", label: "Категории" },
   { id: "shortcuts", label: "Горячие клавиши" },
   { id: "appearance", label: "Оформление" },
+  { id: "system", label: "Система" },
 ];
 
 export function SettingsNav({ active, onChange }: SettingsNavProps) {

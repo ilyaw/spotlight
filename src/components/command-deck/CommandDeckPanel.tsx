@@ -138,13 +138,7 @@ export function CommandDeckPanel() {
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLInputElement>) => {
-      if (view === "settings") {
-        if (event.key === "Escape") {
-          event.preventDefault();
-          setView("main");
-        }
-        return;
-      }
+      if (view === "settings") return;
 
       switch (event.key) {
         case "ArrowDown":
@@ -165,10 +159,6 @@ export function CommandDeckPanel() {
           if (selected) void handleLaunch(selected);
           break;
         }
-        case "Escape":
-          event.preventDefault();
-          void getCurrentWindow().hide();
-          break;
       }
     },
     [view, filteredApps, selectedIndex, handleLaunch],

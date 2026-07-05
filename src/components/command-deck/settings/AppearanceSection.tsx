@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { useRgbEffect } from "../../../context/RgbEffectContext";
 import { useTheme } from "../../../context/ThemeContext";
 import {
@@ -65,7 +66,7 @@ export function AppearanceSection() {
         Подсветка по контуру
       </h3>
 
-      <label className="flex items-center justify-between">
+      <div className="flex items-center justify-between">
         <div>
           <span className="text-sm">RGB-подсветка</span>
           <p className="text-[11px] text-[var(--color-deck-muted)]">
@@ -73,9 +74,9 @@ export function AppearanceSection() {
           </p>
         </div>
         <Toggle checked={enabled} onChange={setEnabled} />
-      </label>
+      </div>
 
-      <label
+      <div
         className={`flex items-center justify-between ${!enabled ? "opacity-50" : ""}`}
       >
         <div>
@@ -89,7 +90,7 @@ export function AppearanceSection() {
           onChange={setAmbientBackground}
           disabled={!enabled}
         />
-      </label>
+      </div>
 
       <div className="space-y-2">
         <span className="text-xs text-[var(--color-deck-muted)]">
@@ -135,20 +136,27 @@ export function AppearanceSection() {
         <span className="text-xs text-[var(--color-deck-muted)]">
           Направление движения
         </span>
-        <select
-          value={direction}
-          onChange={(e) =>
-            setDirection(e.target.value as RgbGradientDirection)
-          }
-          disabled={!animated}
-          className="w-full rounded-lg deck-surface px-3 py-2 text-sm text-[var(--color-deck-text)] outline-none disabled:opacity-50"
+        <div
+          className={`deck-segmented ${!animated ? "opacity-50" : ""}`}
+          role="radiogroup"
+          aria-label="Направление движения"
         >
           {DIRECTIONS.map((d) => (
-            <option key={d.id} value={d.id}>
+            <button
+              key={d.id}
+              type="button"
+              role="radio"
+              aria-checked={direction === d.id}
+              disabled={!animated}
+              onClick={() => setDirection(d.id)}
+              className={`deck-segmented-option ${
+                direction === d.id ? "deck-segmented-option--active" : ""
+              }`}
+            >
               {d.label}
-            </option>
+            </button>
           ))}
-        </select>
+        </div>
       </div>
 
       <Slider
@@ -241,11 +249,14 @@ function Slider({
   onChange: (v: number) => void;
   disabled?: boolean;
 }) {
+  const progress =
+    max === min ? "0%" : `${((value - min) / (max - min)) * 100}%`;
+
   return (
-    <div className={`space-y-1.5 ${disabled ? "opacity-50" : ""}`}>
+    <div className={`space-y-2 ${disabled ? "opacity-50" : ""}`}>
       <div className="flex items-center justify-between">
         <span className="text-xs text-[var(--color-deck-muted)]">{label}</span>
-        <span className="font-mono-deck text-xs text-[var(--color-deck-muted)]">
+        <span className="font-mono-deck text-xs text-[var(--color-deck-text)]">
           {display}
         </span>
       </div>
@@ -257,7 +268,8 @@ function Slider({
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="h-1 w-full cursor-pointer appearance-none rounded-full deck-surface accent-[var(--color-deck-accent)] disabled:cursor-not-allowed"
+        className="deck-range"
+        style={{ "--range-pct": progress } as CSSProperties}
       />
     </div>
   );

@@ -159,13 +159,13 @@ export const RGB_PRESET_GRADIENTS: Record<RgbPreset, RgbGradient> =
 export const DEFAULT_RGB_SETTINGS: RgbEffectSettings = {
   enabled: true,
   ambientBackground: true,
-  preset: "rainbow",
+  preset: "neon-pulse",
   target: "full-panel",
   direction: "clockwise",
   speed: 5,
   thickness: 2,
   glowIntensity: 100,
-  gradient: RGB_PRESETS.rainbow.gradient,
+  gradient: RGB_PRESETS["neon-pulse"].gradient,
 };
 
 export const RGB_STORAGE_KEY = "spotlight-rgb-settings";

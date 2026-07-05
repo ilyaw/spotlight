@@ -5,6 +5,17 @@ use tauri_plugin_global_shortcut::GlobalShortcutExt;
 use tauri_plugin_opener::OpenerExt;
 
 use crate::apps::{self, types::InstalledApp};
+use crate::system::{apply_system_behavior as apply_behavior, SystemBehavior};
+
+#[tauri::command]
+pub fn apply_system_behavior(app: AppHandle, behavior: SystemBehavior) -> Result<(), String> {
+    apply_behavior(&app, behavior)
+}
+
+#[tauri::command]
+pub fn quit_app(app: AppHandle) {
+    app.exit(0);
+}
 
 #[tauri::command]
 pub fn update_global_shortcut(app: AppHandle, shortcut: String) -> Result<(), String> {

@@ -13,6 +13,7 @@ type KeyboardEventLike = {
   altKey: boolean;
   shiftKey: boolean;
   code: string;
+  getModifierState?: unknown;
 };
 
 export const DEFAULT_HOTKEY: HotkeyCombo = {
@@ -94,11 +95,19 @@ export function comboToDisplay(combo: HotkeyCombo, isMac: boolean): string {
 }
 
 export function comboFromEvent(event: KeyboardEventLike): HotkeyCombo {
+  const readModifier = (name: string) => {
+    if (typeof event.getModifierState !== "function") return false;
+    return Boolean(
+      (event.getModifierState as (key: string) => boolean)(name),
+    );
+  };
+  const mod = (name: string, flag: boolean) => flag || readModifier(name);
+
   return {
-    ctrlKey: event.ctrlKey,
-    metaKey: event.metaKey,
-    altKey: event.altKey,
-    shiftKey: event.shiftKey,
+    ctrlKey: mod("Control", event.ctrlKey),
+    metaKey: mod("Meta", event.metaKey),
+    altKey: mod("Alt", event.altKey),
+    shiftKey: mod("Shift", event.shiftKey),
     code: event.code,
   };
 }

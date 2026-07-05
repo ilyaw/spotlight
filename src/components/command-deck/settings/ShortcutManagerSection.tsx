@@ -13,7 +13,8 @@ import { isMacPlatform } from "../../../lib/platform";
 
 export function ShortcutManagerSection() {
   const { apps, setAppShortcut, clearAppShortcut } = useAppLauncher();
-  const { hotkey, setHotkey, resetHotkey, error } = useHotkey();
+  const { hotkey, setHotkey, resetHotkey, error, setHotkeyRecording } =
+    useHotkey();
   const [recordingPath, setRecordingPath] = useState<string | null>(null);
   const [recordingToggle, setRecordingToggle] = useState(false);
   const isMac = isMacPlatform();
@@ -21,13 +22,18 @@ export function ShortcutManagerSection() {
   useEffect(() => {
     if (!recordingPath && !recordingToggle) return;
 
+    const stopRecording = () => {
+      setRecordingPath(null);
+      setRecordingToggle(false);
+      setHotkeyRecording(false);
+    };
+
     const handleKeyDown = (event: KeyboardEvent) => {
       event.preventDefault();
       event.stopPropagation();
 
       if (event.code === "Escape") {
-        setRecordingPath(null);
-        setRecordingToggle(false);
+        stopRecording();
         return;
       }
 
@@ -38,16 +44,22 @@ export function ShortcutManagerSection() {
 
       if (recordingToggle) {
         setHotkey(combo);
-        setRecordingToggle(false);
+        stopRecording();
       } else if (recordingPath) {
         setAppShortcut(recordingPath, combo);
-        setRecordingPath(null);
+        stopRecording();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown, true);
     return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [recordingPath, recordingToggle, setAppShortcut, setHotkey]);
+  }, [
+    recordingPath,
+    recordingToggle,
+    setAppShortcut,
+    setHotkey,
+    setHotkeyRecording,
+  ]);
 
   return (
     <section className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden">
@@ -63,6 +75,7 @@ export function ShortcutManagerSection() {
           <button
             type="button"
             onClick={() => {
+              setHotkeyRecording(true);
               setRecordingPath(null);
               setRecordingToggle(true);
             }}
@@ -126,6 +139,7 @@ export function ShortcutManagerSection() {
                   <button
                     type="button"
                     onClick={() => {
+                      setHotkeyRecording(true);
                       setRecordingToggle(false);
                       setRecordingPath(app.path);
                     }}
