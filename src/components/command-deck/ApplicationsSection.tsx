@@ -74,32 +74,33 @@ export function ApplicationsSection({
           Приложения не найдены
         </p>
       ) : (
-        <div className="relative min-h-0 flex-1 overflow-hidden">
-          <div ref={scrollRef} className="deck-scroll-area h-full min-h-0 px-1.5 pt-1.5">
-            <LayoutGroup>
-              <motion.div
-                layout
-                className={
-                  layout === "list"
-                    ? "flex flex-col gap-0.5"
-                    : "grid grid-cols-3 gap-2 pb-1"
-                }
-              >
-                {apps.map((app, index) => (
-                  <AppListItem
-                    key={app.path}
-                    app={app}
-                    layout={layout}
-                    index={index}
-                    selected={index === selectedIndex}
-                    onSelect={() => onSelectIndex(index)}
-                    onLaunch={() => onLaunch(app)}
-                    onHover={() => onSelectIndex(index)}
-                  />
-                ))}
-              </motion.div>
-            </LayoutGroup>
-          </div>
+        <div
+          ref={scrollRef}
+          className="deck-scroll-area min-h-0 flex-1 overflow-y-auto px-1.5 pt-1.5"
+        >
+          <LayoutGroup>
+            <motion.div
+              layout
+              className={
+                layout === "list"
+                  ? "flex flex-col gap-0.5"
+                  : "grid grid-cols-3 gap-2 pb-1"
+              }
+            >
+              {apps.map((app, index) => (
+                <AppListItem
+                  key={app.path}
+                  app={app}
+                  layout={layout}
+                  index={index}
+                  selected={index === selectedIndex}
+                  onSelect={() => onSelectIndex(index)}
+                  onLaunch={() => onLaunch(app)}
+                  onHover={() => onSelectIndex(index)}
+                />
+              ))}
+            </motion.div>
+          </LayoutGroup>
         </div>
       )}
 
