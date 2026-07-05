@@ -2,18 +2,21 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import { RgbEffectProvider } from "./context/RgbEffectContext";
-import { QuickLaunchProvider } from "./context/QuickLaunchContext";
 import { HotkeyProvider } from "./context/HotkeyContext";
+import { AppLauncherProvider } from "./context/AppLauncherContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-    <RgbEffectProvider>
-      <QuickLaunchProvider>
+    <ThemeProvider>
+      <RgbEffectProvider>
         <HotkeyProvider>
-          <App />
+          <AppLauncherProvider>
+            <App />
+          </AppLauncherProvider>
         </HotkeyProvider>
-      </QuickLaunchProvider>
-    </RgbEffectProvider>
+      </RgbEffectProvider>
+    </ThemeProvider>
   </React.StrictMode>,
 );

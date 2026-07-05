@@ -12,8 +12,8 @@ import {
   getPresetGradient,
   RGB_STORAGE_KEY,
   type RgbEffectSettings,
-  type RgbEffectTarget,
   type RgbGradient,
+  type RgbGradientDirection,
   type RgbPreset,
 } from "../types/rgbEffect";
 
@@ -21,9 +21,10 @@ type RgbEffectContextValue = {
   settings: RgbEffectSettings;
   setEnabled: (enabled: boolean) => void;
   setPreset: (preset: RgbPreset) => void;
-  setTarget: (target: RgbEffectTarget) => void;
+  setDirection: (direction: RgbGradientDirection) => void;
   setSpeed: (speed: number) => void;
   setThickness: (thickness: number) => void;
+  setGlowIntensity: (glowIntensity: number) => void;
   setGradient: (gradient: RgbGradient) => void;
   resetGradientToPreset: () => void;
   updateSettings: (partial: Partial<RgbEffectSettings>) => void;
@@ -31,21 +32,41 @@ type RgbEffectContextValue = {
 
 const RgbEffectContext = createContext<RgbEffectContextValue | null>(null);
 
+function migrateSettings(parsed: Partial<RgbEffectSettings>): RgbEffectSettings {
+  const presetMap: Record<string, RgbPreset> = {
+    cyberpunk: "two-color",
+    "rainbow-wave": "rainbow",
+    "neon-pulse": "rainbow",
+    static: "static",
+    "two-color": "two-color",
+    rainbow: "rainbow",
+  };
+
+  const rawPreset = parsed.preset as string | undefined;
+  const preset = rawPreset ? (presetMap[rawPreset] ?? "rainbow") : DEFAULT_RGB_SETTINGS.preset;
+
+  return {
+    ...DEFAULT_RGB_SETTINGS,
+    ...parsed,
+    preset,
+    target: "full-panel",
+    direction: parsed.direction ?? DEFAULT_RGB_SETTINGS.direction,
+    glowIntensity: parsed.glowIntensity ?? DEFAULT_RGB_SETTINGS.glowIntensity,
+    gradient: {
+      ...DEFAULT_RGB_SETTINGS.gradient,
+      ...parsed.gradient,
+      colors: parsed.gradient?.colors ?? getPresetGradient(preset).colors,
+    },
+  };
+}
+
 function loadSettings(): RgbEffectSettings {
   try {
     const raw = localStorage.getItem(RGB_STORAGE_KEY);
     if (!raw) return DEFAULT_RGB_SETTINGS;
 
     const parsed = JSON.parse(raw) as Partial<RgbEffectSettings>;
-    return {
-      ...DEFAULT_RGB_SETTINGS,
-      ...parsed,
-      gradient: {
-        ...DEFAULT_RGB_SETTINGS.gradient,
-        ...parsed.gradient,
-        colors: parsed.gradient?.colors ?? DEFAULT_RGB_SETTINGS.gradient.colors,
-      },
-    };
+    return migrateSettings(parsed);
   } catch {
     return DEFAULT_RGB_SETTINGS;
   }
@@ -75,19 +96,16 @@ export function RgbEffectProvider({ children }: { children: ReactNode }) {
     [updateSettings],
   );
 
-  const setPreset = useCallback(
-    (preset: RgbPreset) => {
-      setSettings((prev) => ({
-        ...prev,
-        preset,
-        gradient: getPresetGradient(preset),
-      }));
-    },
-    [],
-  );
+  const setPreset = useCallback((preset: RgbPreset) => {
+    setSettings((prev) => ({
+      ...prev,
+      preset,
+      gradient: getPresetGradient(preset),
+    }));
+  }, []);
 
-  const setTarget = useCallback(
-    (target: RgbEffectTarget) => updateSettings({ target }),
+  const setDirection = useCallback(
+    (direction: RgbGradientDirection) => updateSettings({ direction }),
     [updateSettings],
   );
 
@@ -98,6 +116,11 @@ export function RgbEffectProvider({ children }: { children: ReactNode }) {
 
   const setThickness = useCallback(
     (thickness: number) => updateSettings({ thickness }),
+    [updateSettings],
+  );
+
+  const setGlowIntensity = useCallback(
+    (glowIntensity: number) => updateSettings({ glowIntensity }),
     [updateSettings],
   );
 
@@ -118,9 +141,10 @@ export function RgbEffectProvider({ children }: { children: ReactNode }) {
       settings,
       setEnabled,
       setPreset,
-      setTarget,
+      setDirection,
       setSpeed,
       setThickness,
+      setGlowIntensity,
       setGradient,
       resetGradientToPreset,
       updateSettings,
@@ -129,9 +153,10 @@ export function RgbEffectProvider({ children }: { children: ReactNode }) {
       settings,
       setEnabled,
       setPreset,
-      setTarget,
+      setDirection,
       setSpeed,
       setThickness,
+      setGlowIntensity,
       setGradient,
       resetGradientToPreset,
       updateSettings,

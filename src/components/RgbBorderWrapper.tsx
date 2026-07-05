@@ -1,7 +1,10 @@
 import { type CSSProperties, type ReactNode, useMemo } from "react";
-import { motion } from "framer-motion";
 import { useRgbEffect } from "../context/RgbEffectContext";
-import { getBaseDuration, type RgbEffectTarget } from "../types/rgbEffect";
+import {
+  glowVars,
+  speedToDuration,
+  type RgbEffectTarget,
+} from "../types/rgbEffect";
 
 type RgbBorderWrapperProps = {
   children: ReactNode;
@@ -17,61 +20,55 @@ export function RgbBorderWrapper({
   fallbackClassName = "",
 }: RgbBorderWrapperProps) {
   const { settings } = useRgbEffect();
-  const { enabled, target, preset, speed, thickness, gradient } = settings;
+  const {
+    enabled,
+    target,
+    preset,
+    direction,
+    speed,
+    thickness,
+    glowIntensity,
+    gradient,
+  } = settings;
 
   const isActive = enabled && target === variant;
 
-  const cssVars = useMemo(
-    () =>
-      ({
-        "--rgb-thickness": `${thickness}px`,
-        "--rgb-duration": `${getBaseDuration(preset) / speed}s`,
-        "--rgb-color-1": gradient.colors[0],
-        "--rgb-color-2": gradient.colors[1],
-        "--rgb-color-3": gradient.colors[2],
-        "--gradient-angle": `${gradient.angle}deg`,
-      }) as CSSProperties,
-    [thickness, preset, speed, gradient],
-  );
+  const cssVars = useMemo(() => {
+    const glow = glowVars(glowIntensity);
+    return {
+      "--rgb-thickness": `${thickness}px`,
+      "--rgb-duration": speedToDuration(speed, preset),
+      "--rgb-color-1": gradient.colors[0],
+      "--rgb-color-2": gradient.colors[1],
+      "--rgb-color-3": gradient.colors[2],
+      "--gradient-angle": `${gradient.angle}deg`,
+      "--rgb-glow-blur": glow.blur,
+      "--rgb-glow-opacity": glow.opacity,
+    } as CSSProperties;
+  }, [thickness, preset, speed, glowIntensity, gradient]);
 
   if (!isActive) {
-    return <div className={fallbackClassName || className}>{children}</div>;
+    return (
+      <div
+        className={
+          fallbackClassName ||
+          `deck-panel overflow-hidden rounded-[var(--radius-deck)] border deck-border ${className}`
+        }
+      >
+        {children}
+      </div>
+    );
   }
 
-  const wrapperClass =
-    variant === "full-panel"
-      ? "rgb-border-wrapper rgb-border-wrapper--full-panel"
-      : "rgb-border-wrapper rgb-border-wrapper--search-row";
-
-  const glowDuration = getBaseDuration(preset) / speed;
+  const directionClass =
+    direction === "counter-clockwise" ? "rgb-border-wrapper--reverse" : "";
 
   return (
     <div
-      className={`${wrapperClass} rgb-preset-${preset} ${className}`}
+      className={`rgb-border-wrapper rgb-border-wrapper--full-panel rgb-preset-${preset} ${directionClass} ${className}`}
       style={cssVars}
     >
       <div className="rgb-border-gradient" aria-hidden="true" />
-
-      {preset === "neon-pulse" && (
-        <motion.div
-          className="rgb-border-glow"
-          aria-hidden="true"
-          animate={{
-            opacity: [0.25, 0.65, 0.25],
-            boxShadow: [
-              `0 0 ${thickness * 4}px ${gradient.colors[0]}40, 0 0 ${thickness * 8}px ${gradient.colors[1]}30`,
-              `0 0 ${thickness * 8}px ${gradient.colors[0]}70, 0 0 ${thickness * 16}px ${gradient.colors[2]}50`,
-              `0 0 ${thickness * 4}px ${gradient.colors[0]}40, 0 0 ${thickness * 8}px ${gradient.colors[1]}30`,
-            ],
-          }}
-          transition={{
-            duration: glowDuration,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-      )}
-
       <div className="rgb-border-inner">{children}</div>
     </div>
   );
