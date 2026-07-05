@@ -52,13 +52,16 @@ pub fn apply_system_behavior(app: &AppHandle, behavior: SystemBehavior) -> Resul
 
 pub fn apply_window_visibility_policy(
     app: &AppHandle,
-    _window: &WebviewWindow,
+    window: &WebviewWindow,
     hide_from_taskbar: bool,
 ) -> Result<(), String> {
     #[cfg(target_os = "windows")]
-    _window
-        .set_skip_taskbar(hide_from_taskbar)
-        .map_err(|err| format!("Failed to set skip taskbar: {err}"))?;
+    {
+        window
+            .set_skip_taskbar(hide_from_taskbar)
+            .map_err(|err| format!("Failed to set skip taskbar: {err}"))?;
+        let _ = app;
+    }
 
     #[cfg(target_os = "macos")]
     {
@@ -70,12 +73,12 @@ pub fn apply_window_visibility_policy(
 
         app.set_activation_policy(policy)
             .map_err(|err| format!("Failed to set activation policy: {err}"))?;
+        let _ = window;
     }
 
     #[cfg(not(any(target_os = "windows", target_os = "macos")))]
     {
-        let _ = (_window, hide_from_taskbar);
-        let _ = app;
+        let _ = (app, window, hide_from_taskbar);
     }
 
     Ok(())

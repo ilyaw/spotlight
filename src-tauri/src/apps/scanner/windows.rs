@@ -1,14 +1,14 @@
 use std::collections::HashMap;
-use std::ffi::OsStr;
 use std::os::windows::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 
 use walkdir::WalkDir;
-use windows::core::PCWSTR;
+use windows::core::{Interface, PCWSTR};
 use windows::Win32::System::Com::{
-    CoCreateInstance, CoInitializeEx, CLSCTX_INPROC_SERVER, COINIT_APARTMENTTHREADED,
+    CoCreateInstance, CoInitializeEx, IPersistFile, CLSCTX_INPROC_SERVER,
+    COINIT_APARTMENTTHREADED,
 };
-use windows::Win32::UI::Shell::{IPersistFile, IShellLinkW, ShellLink};
+use windows::Win32::UI::Shell::{IShellLinkW, ShellLink};
 
 use crate::apps::icon;
 use crate::apps::types::{AppMetadata, InstalledApp};
@@ -128,7 +128,9 @@ fn resolve_lnk(lnk_path: &Path) -> Option<String> {
         persist.Load(PCWSTR(wide.as_ptr()), Default::default()).ok()?;
 
         let mut buffer = [0u16; 260];
-        shell_link.GetPath(&mut buffer, None, Default::default()).ok()?;
+        shell_link
+            .GetPath(&mut buffer, std::ptr::null_mut(), 0)
+            .ok()?;
         let len = buffer.iter().position(|&c| c == 0).unwrap_or(buffer.len());
         let target = String::from_utf16_lossy(&buffer[..len]);
         if target.is_empty() {

@@ -1,9 +1,8 @@
 use std::ffi::OsStr;
 use std::os::windows::ffi::OsStrExt;
-use std::path::Path;
 
 use image::imageops::FilterType;
-use image::{GenericImageView, RgbaImage};
+use image::RgbaImage;
 use windows::core::PCWSTR;
 use windows::Win32::Graphics::Gdi::{
     CreateCompatibleDC, DeleteDC, DeleteObject, GetDIBits, GetObjectW, BITMAP,
@@ -48,7 +47,7 @@ fn icon_handle_to_png(icon: windows::Win32::UI::WindowsAndMessaging::HICON, size
 
         let mut bitmap = BITMAP::default();
         GetObjectW(
-            icon_info.hbmColor.into(),
+            icon_info.hbmColor,
             std::mem::size_of::<BITMAP>() as i32,
             Some(&mut bitmap as *mut _ as *mut _),
         );
@@ -116,9 +115,9 @@ fn icon_handle_to_png(icon: windows::Win32::UI::WindowsAndMessaging::HICON, size
 
 unsafe fn cleanup_icon_info(icon_info: &ICONINFO) {
     if !icon_info.hbmColor.is_invalid() {
-        let _ = DeleteObject(icon_info.hbmColor.into());
+        let _ = DeleteObject(icon_info.hbmColor);
     }
     if !icon_info.hbmMask.is_invalid() {
-        let _ = DeleteObject(icon_info.hbmMask.into());
+        let _ = DeleteObject(icon_info.hbmMask);
     }
 }
