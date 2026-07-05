@@ -7,45 +7,60 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { MOCK_APPS } from "../data/mockApps";
+import { fetchInstalledApps } from "../lib/tauriApps";
 import {
   APP_LAUNCHER_STORAGE_KEY,
   DEFAULT_APP_LAUNCHER_SETTINGS,
-  basenameFromPath,
-  initialsFromName,
+  mergeApps,
   type AppLauncherSettings,
+  type FilterSettings,
+  type InstalledApp,
   type LauncherApp,
   type LauncherLayoutMode,
+  type ManualAppEntry,
 } from "../types/appLauncher";
 import type { HotkeyCombo } from "../types/hotkey";
 
 type AppLauncherContextValue = {
   apps: LauncherApp[];
   layoutMode: LauncherLayoutMode;
+  filterSettings: FilterSettings;
+  isLoading: boolean;
+  scanError: string | null;
   setLayoutMode: (mode: LauncherLayoutMode) => void;
-  addApp: (path: string, name?: string) => void;
-  removeApp: (id: string) => void;
-  setAppShortcut: (id: string, shortcut: HotkeyCombo | null) => void;
-  clearAppShortcut: (id: string) => void;
+  refreshApps: () => Promise<void>;
+  addManualApp: (entry: ManualAppEntry) => void;
+  removeApp: (path: string) => void;
+  setAppShortcut: (path: string, shortcut: HotkeyCombo | null) => void;
+  clearAppShortcut: (path: string) => void;
+  setAppCategories: (path: string, categoryIds: string[]) => void;
+  setFilterSettings: (settings: FilterSettings) => void;
+  addFilter: (label: string) => void;
+  updateFilter: (id: string, label: string) => void;
+  removeFilter: (id: string) => void;
+  setFiltersEnabled: (enabled: boolean) => void;
 };
 
 const AppLauncherContext = createContext<AppLauncherContextValue | null>(null);
 
-function loadSettings(): AppLauncherSettings {
+function loadPersistedSettings(): AppLauncherSettings {
   try {
     const raw = localStorage.getItem(APP_LAUNCHER_STORAGE_KEY);
-    if (!raw) {
-      return { ...DEFAULT_APP_LAUNCHER_SETTINGS, apps: MOCK_APPS };
-    }
+    if (!raw) return { ...DEFAULT_APP_LAUNCHER_SETTINGS };
 
     const parsed = JSON.parse(raw) as Partial<AppLauncherSettings>;
     return {
       layoutMode: parsed.layoutMode ?? DEFAULT_APP_LAUNCHER_SETTINGS.layoutMode,
-      apps:
-        parsed.apps && parsed.apps.length > 0 ? parsed.apps : MOCK_APPS,
+      manualApps: parsed.manualApps ?? [],
+      overrides: parsed.overrides ?? [],
+      filterSettings: {
+        ...DEFAULT_APP_LAUNCHER_SETTINGS.filterSettings,
+        ...parsed.filterSettings,
+        filters: parsed.filterSettings?.filters ?? [],
+      },
     };
   } catch {
-    return { ...DEFAULT_APP_LAUNCHER_SETTINGS, apps: MOCK_APPS };
+    return { ...DEFAULT_APP_LAUNCHER_SETTINGS };
   }
 }
 
@@ -57,89 +72,209 @@ function persistSettings(settings: AppLauncherSettings) {
   }
 }
 
-function randomColor(): string {
-  const colors = [
-    "#8B5CF6",
-    "#06B6D4",
-    "#22C55E",
-    "#EAB308",
-    "#F97316",
-    "#EF4444",
-    "#EC4899",
-    "#3B82F6",
-  ];
-  return colors[Math.floor(Math.random() * colors.length)];
+function upsertOverride(
+  overrides: AppLauncherSettings["overrides"],
+  path: string,
+  patch: Partial<AppLauncherSettings["overrides"][number]>,
+): AppLauncherSettings["overrides"] {
+  const index = overrides.findIndex((o) => o.path === path);
+  if (index === -1) {
+    return [
+      ...overrides,
+      {
+        path,
+        categoryIds: patch.categoryIds ?? [],
+        shortcut: patch.shortcut ?? null,
+      },
+    ];
+  }
+  const next = [...overrides];
+  next[index] = { ...next[index], ...patch, path };
+  return next;
 }
 
 export function AppLauncherProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = useState<AppLauncherSettings>(loadSettings);
+  const [persisted, setPersisted] = useState<AppLauncherSettings>(
+    loadPersistedSettings,
+  );
+  const [scannedRaw, setScannedRaw] = useState<InstalledApp[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [scanError, setScanError] = useState<string | null>(null);
 
   useEffect(() => {
-    persistSettings(settings);
-  }, [settings]);
+    persistSettings(persisted);
+  }, [persisted]);
+
+  const refreshApps = useCallback(async () => {
+    setIsLoading(true);
+    setScanError(null);
+    try {
+      const installed = await fetchInstalledApps();
+      setScannedRaw(installed);
+    } catch (err) {
+      setScanError(
+        err instanceof Error ? err.message : "Failed to scan installed apps",
+      );
+      setScannedRaw([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshApps();
+  }, [refreshApps]);
+
+  const apps = useMemo(
+    () => mergeApps(scannedRaw, persisted),
+    [scannedRaw, persisted],
+  );
 
   const setLayoutMode = useCallback((layoutMode: LauncherLayoutMode) => {
-    setSettings((prev) => ({ ...prev, layoutMode }));
+    setPersisted((prev) => ({ ...prev, layoutMode }));
   }, []);
 
-  const addApp = useCallback((path: string, name?: string) => {
-    const label = name ?? basenameFromPath(path);
-    const app: LauncherApp = {
-      id: crypto.randomUUID(),
-      name: label,
-      initials: initialsFromName(label),
-      color: randomColor(),
-      category: "system",
-      path,
-    };
-    setSettings((prev) => ({ ...prev, apps: [...prev.apps, app] }));
+  const addManualApp = useCallback((entry: ManualAppEntry) => {
+    setPersisted((prev) => {
+      const without = prev.manualApps.filter((a) => a.path !== entry.path);
+      return {
+        ...prev,
+        manualApps: [...without, entry],
+      };
+    });
   }, []);
 
-  const removeApp = useCallback((id: string) => {
-    setSettings((prev) => ({
+  const removeApp = useCallback((path: string) => {
+    setPersisted((prev) => ({
       ...prev,
-      apps: prev.apps.filter((a) => a.id !== id),
+      manualApps: prev.manualApps.filter((a) => a.path !== path),
+      overrides: prev.overrides.filter((o) => o.path !== path),
     }));
   }, []);
 
   const setAppShortcut = useCallback(
-    (id: string, shortcut: HotkeyCombo | null) => {
-      setSettings((prev) => ({
+    (path: string, shortcut: HotkeyCombo | null) => {
+      setPersisted((prev) => ({
         ...prev,
-        apps: prev.apps.map((a) =>
-          a.id === id ? { ...a, shortcut } : a,
-        ),
+        overrides: upsertOverride(prev.overrides, path, { shortcut }),
       }));
     },
     [],
   );
 
-  const clearAppShortcut = useCallback((id: string) => {
-    setSettings((prev) => ({
+  const clearAppShortcut = useCallback((path: string) => {
+    setPersisted((prev) => ({
       ...prev,
-      apps: prev.apps.map((a) =>
-        a.id === id ? { ...a, shortcut: null } : a,
-      ),
+      overrides: upsertOverride(prev.overrides, path, { shortcut: null }),
+    }));
+  }, []);
+
+  const setAppCategories = useCallback(
+    (path: string, categoryIds: string[]) => {
+      setPersisted((prev) => ({
+        ...prev,
+        overrides: upsertOverride(prev.overrides, path, { categoryIds }),
+      }));
+    },
+    [],
+  );
+
+  const setFilterSettings = useCallback((filterSettings: FilterSettings) => {
+    setPersisted((prev) => ({ ...prev, filterSettings }));
+  }, []);
+
+  const addFilter = useCallback((label: string) => {
+    const trimmed = label.trim();
+    if (!trimmed) return;
+    setPersisted((prev) => ({
+      ...prev,
+      filterSettings: {
+        ...prev.filterSettings,
+        filters: [
+          ...prev.filterSettings.filters,
+          { id: crypto.randomUUID(), label: trimmed },
+        ],
+      },
+    }));
+  }, []);
+
+  const updateFilter = useCallback((id: string, label: string) => {
+    const trimmed = label.trim();
+    if (!trimmed) return;
+    setPersisted((prev) => ({
+      ...prev,
+      filterSettings: {
+        ...prev.filterSettings,
+        filters: prev.filterSettings.filters.map((f) =>
+          f.id === id ? { ...f, label: trimmed } : f,
+        ),
+      },
+    }));
+  }, []);
+
+  const removeFilter = useCallback((id: string) => {
+    setPersisted((prev) => ({
+      ...prev,
+      filterSettings: {
+        ...prev.filterSettings,
+        filters: prev.filterSettings.filters.filter((f) => f.id !== id),
+      },
+      manualApps: prev.manualApps.map((a) => ({
+        ...a,
+        categoryIds: a.categoryIds.filter((cid) => cid !== id),
+      })),
+      overrides: prev.overrides.map((o) => ({
+        ...o,
+        categoryIds: o.categoryIds.filter((cid) => cid !== id),
+      })),
+    }));
+  }, []);
+
+  const setFiltersEnabled = useCallback((enabled: boolean) => {
+    setPersisted((prev) => ({
+      ...prev,
+      filterSettings: { ...prev.filterSettings, enabled },
     }));
   }, []);
 
   const value = useMemo<AppLauncherContextValue>(
     () => ({
-      apps: settings.apps,
-      layoutMode: settings.layoutMode,
+      apps,
+      layoutMode: persisted.layoutMode,
+      filterSettings: persisted.filterSettings,
+      isLoading,
+      scanError,
       setLayoutMode,
-      addApp,
+      refreshApps,
+      addManualApp,
       removeApp,
       setAppShortcut,
       clearAppShortcut,
+      setAppCategories,
+      setFilterSettings,
+      addFilter,
+      updateFilter,
+      removeFilter,
+      setFiltersEnabled,
     }),
     [
-      settings,
+      apps,
+      persisted.layoutMode,
+      persisted.filterSettings,
+      isLoading,
+      scanError,
       setLayoutMode,
-      addApp,
+      refreshApps,
+      addManualApp,
       removeApp,
       setAppShortcut,
       clearAppShortcut,
+      setAppCategories,
+      setFilterSettings,
+      addFilter,
+      updateFilter,
+      removeFilter,
+      setFiltersEnabled,
     ],
   );
 

@@ -7,7 +7,7 @@ import { launchApp } from "../../lib/launchApp";
 import { isWindowsPlatform } from "../../lib/platform";
 import {
   resolveLayout,
-  type FilterTag,
+  shouldShowFilters,
   type LauncherApp,
 } from "../../types/appLauncher";
 import {
@@ -32,12 +32,24 @@ export function CommandDeckPanel() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [view, setView] = useState<View>("main");
   const [query, setQuery] = useState("");
-  const [filterTag, setFilterTag] = useState<FilterTag>("all");
+  const [filterTag, setFilterTag] = useState<string | "all">("all");
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const { apps, layoutMode } = useAppLauncher();
+  const {
+    apps,
+    layoutMode,
+    filterSettings,
+    isLoading,
+    scanError,
+    refreshApps,
+  } = useAppLauncher();
 
-  const filteredApps = useFilteredApps(apps, query, filterTag);
+  const showFilters = shouldShowFilters(filterSettings);
+  const filteredApps = useFilteredApps(
+    apps,
+    query,
+    showFilters ? filterTag : "all",
+  );
   const layout = resolveLayout(layoutMode, filteredApps.length);
 
   const panelRef = useWindowAutoHeight([
@@ -46,6 +58,9 @@ export function CommandDeckPanel() {
     layout,
     query,
     filterTag,
+    showFilters,
+    isLoading,
+    scanError,
   ]);
 
   useEffect(() => {
@@ -55,6 +70,12 @@ export function CommandDeckPanel() {
   useEffect(() => {
     setSelectedIndex(0);
   }, [query, filterTag, filteredApps.length]);
+
+  useEffect(() => {
+    if (!showFilters) {
+      setFilterTag("all");
+    }
+  }, [showFilters]);
 
   const handleLaunch = useCallback(async (app: LauncherApp) => {
     await launchApp(app);
@@ -167,11 +188,26 @@ export function CommandDeckPanel() {
                 onKeyDown={handleKeyDown}
                 onOpenSettings={() => setView("settings")}
               />
-              <FilterTags active={filterTag} onChange={setFilterTag} />
+              {scanError && (
+                <div className="mx-4 mb-2 flex items-center justify-between gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                  <span className="min-w-0 truncate">{scanError}</span>
+                  <button
+                    type="button"
+                    onClick={() => void refreshApps()}
+                    className="shrink-0 rounded px-2 py-0.5 hover:bg-red-500/20"
+                  >
+                    Повторить
+                  </button>
+                </div>
+              )}
+              {showFilters && (
+                <FilterTags active={filterTag} onChange={setFilterTag} />
+              )}
               <ApplicationsSection
                 apps={filteredApps}
                 layout={layout}
                 selectedIndex={selectedIndex}
+                isLoading={isLoading}
                 onSelectIndex={setSelectedIndex}
                 onLaunch={(app) => void handleLaunch(app)}
               />

@@ -1,4 +1,3 @@
-import { openPath } from "@tauri-apps/plugin-opener";
 import { invoke } from "@tauri-apps/api/core";
 import type { LauncherApp } from "../types/appLauncher";
 
@@ -8,9 +7,5 @@ export async function launchApp(app: LauncherApp): Promise<void> {
     return;
   }
 
-  try {
-    await openPath(app.path);
-  } catch {
-    await invoke("launch_app", { path: app.path });
-  }
+  await invoke("launch_app", { path: app.path });
 }

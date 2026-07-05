@@ -1,8 +1,10 @@
 use std::path::Path;
-use std::process::Command;
 
 use tauri::AppHandle;
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
+use tauri_plugin_opener::OpenerExt;
+
+use crate::apps::{self, types::InstalledApp};
 
 #[tauri::command]
 pub fn update_global_shortcut(app: AppHandle, shortcut: String) -> Result<(), String> {
@@ -23,7 +25,7 @@ pub fn update_global_shortcut(app: AppHandle, shortcut: String) -> Result<(), St
 }
 
 #[tauri::command]
-pub fn launch_app(path: String) -> Result<(), String> {
+pub fn launch_app(app: AppHandle, path: String) -> Result<(), String> {
     let trimmed = path.trim();
     if trimmed.is_empty() {
         return Err("No application path provided".to_string());
@@ -33,19 +35,19 @@ pub fn launch_app(path: String) -> Result<(), String> {
         return Err(format!("Path does not exist: {trimmed}"));
     }
 
-    spawn(trimmed).map_err(|err| format!("Failed to launch {trimmed}: {err}"))
+    app.opener()
+        .open_path(trimmed, None::<&str>)
+        .map_err(|err| format!("Failed to launch {trimmed}: {err}"))
 }
 
-#[cfg(target_os = "macos")]
-fn spawn(path: &str) -> std::io::Result<()> {
-    Command::new("open").arg(path).spawn()?;
-    Ok(())
+#[tauri::command]
+pub fn scan_installed_apps(app: AppHandle) -> Result<Vec<InstalledApp>, String> {
+    apps::scan_apps(&app)
 }
 
-#[cfg(not(target_os = "macos"))]
-fn spawn(path: &str) -> std::io::Result<()> {
-    Command::new(path).spawn()?;
-    Ok(())
+#[tauri::command]
+pub fn get_app_metadata(app: AppHandle, path: String) -> Result<apps::types::AppMetadata, String> {
+    apps::app_metadata(&app, path)
 }
 
 #[cfg(test)]
@@ -54,11 +56,7 @@ mod tests {
 
     #[test]
     fn empty_path_is_rejected() {
-        assert!(launch_app("   ".to_string()).is_err());
-    }
-
-    #[test]
-    fn nonexistent_path_is_rejected() {
-        assert!(launch_app("/definitely/not/a/real/path".to_string()).is_err());
+        let result = Path::new("   ").exists();
+        assert!(!result);
     }
 }

@@ -1,52 +1,69 @@
 import type { HotkeyCombo } from "./hotkey";
 
-export type AppCategory =
-  | "design"
-  | "development"
-  | "system"
-  | "productivity";
-
-export type FilterTag = "all" | AppCategory;
-
-export type LauncherLayoutMode = "auto" | "list" | "grid";
-
-export type LauncherApp = {
+export type InstalledApp = {
   id: string;
   name: string;
-  initials: string;
-  color: string;
-  category: AppCategory;
-  path?: string;
+  path: string;
+  icon: string;
+};
+
+export type AppMetadata = {
+  name: string;
+  icon: string;
+};
+
+export type CustomFilter = {
+  id: string;
+  label: string;
+};
+
+export type FilterSettings = {
+  enabled: boolean;
+  filters: CustomFilter[];
+};
+
+export type AppOverride = {
+  path: string;
+  categoryIds: string[];
   shortcut?: HotkeyCombo | null;
 };
 
+export type ManualAppEntry = {
+  path: string;
+  name: string;
+  icon: string;
+  categoryIds: string[];
+};
+
+export type LauncherLayoutMode = "auto" | "list" | "grid";
+
+export type LauncherApp = InstalledApp & {
+  categoryIds: string[];
+  shortcut?: HotkeyCombo | null;
+  source: "system" | "manual";
+};
+
 export type AppLauncherSettings = {
-  apps: LauncherApp[];
   layoutMode: LauncherLayoutMode;
+  manualApps: ManualAppEntry[];
+  overrides: AppOverride[];
+  filterSettings: FilterSettings;
 };
 
 export const APP_LAUNCHER_STORAGE_KEY = "spotlight-app-launcher-settings";
+export const FILTER_SETTINGS_STORAGE_KEY = "spotlight-filter-settings";
+
+export const DEFAULT_FILTER_SETTINGS: FilterSettings = {
+  enabled: false,
+  filters: [],
+};
 
 export const DEFAULT_APP_LAUNCHER_SETTINGS: AppLauncherSettings = {
-  apps: [],
   layoutMode: "auto",
+  manualApps: [],
+  overrides: [],
+  filterSettings: DEFAULT_FILTER_SETTINGS,
 };
-
-export const FILTER_TAG_LABELS: Record<FilterTag, string> = {
-  all: "Все",
-  design: "Дизайн",
-  development: "Разработка",
-  system: "Система",
-  productivity: "Продуктивность",
-};
-
-export const FILTER_TAGS: FilterTag[] = [
-  "all",
-  "design",
-  "development",
-  "system",
-  "productivity",
-];
 
 export function resolveLayout(
   mode: LauncherLayoutMode,
@@ -64,10 +81,55 @@ export function basenameFromPath(path: string): string {
   return base.replace(/\.(app|exe)$/i, "");
 }
 
-export function initialsFromName(name: string): string {
-  const words = name.trim().split(/\s+/);
-  if (words.length >= 2) {
-    return (words[0][0] + words[1][0]).toUpperCase();
+export function mergeApps(
+  scanned: InstalledApp[],
+  settings: AppLauncherSettings,
+): LauncherApp[] {
+  const overrideByPath = new Map(
+    settings.overrides.map((o) => [o.path, o]),
+  );
+  const byPath = new Map<string, LauncherApp>();
+
+  for (const app of scanned) {
+    const override = overrideByPath.get(app.path);
+    byPath.set(app.path, {
+      ...app,
+      categoryIds: override?.categoryIds ?? [],
+      shortcut: override?.shortcut ?? null,
+      source: "system",
+    });
   }
-  return name.slice(0, 2).toUpperCase();
+
+  for (const manual of settings.manualApps) {
+    const override = overrideByPath.get(manual.path);
+    const existing = byPath.get(manual.path);
+    if (existing) {
+      byPath.set(manual.path, {
+        ...existing,
+        name: manual.name,
+        icon: manual.icon || existing.icon,
+        categoryIds: manual.categoryIds,
+        shortcut: override?.shortcut ?? existing.shortcut ?? null,
+        source: "manual",
+      });
+    } else {
+      byPath.set(manual.path, {
+        id: manual.path,
+        name: manual.name,
+        path: manual.path,
+        icon: manual.icon,
+        categoryIds: manual.categoryIds,
+        shortcut: override?.shortcut ?? null,
+        source: "manual",
+      });
+    }
+  }
+
+  return Array.from(byPath.values()).sort((a, b) =>
+    a.name.toLowerCase().localeCompare(b.name.toLowerCase()),
+  );
+}
+
+export function shouldShowFilters(settings: FilterSettings): boolean {
+  return settings.enabled && settings.filters.length > 0;
 }

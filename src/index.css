@@ -134,6 +134,7 @@ body {
 
 .rgb-border-wrapper--full-panel {
   overflow: hidden;
+  isolation: isolate;
 }
 
 .rgb-border-gradient {

@@ -1,3 +1,4 @@
+mod apps;
 mod commands;
 
 use tauri::Manager;
@@ -81,7 +82,9 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::launch_app,
-            commands::update_global_shortcut
+            commands::update_global_shortcut,
+            commands::scan_installed_apps,
+            commands::get_app_metadata,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

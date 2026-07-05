@@ -1,17 +1,15 @@
 import { LayoutGroup, motion } from "framer-motion";
 import { open } from "@tauri-apps/plugin-dialog";
-import { useAppLauncher } from "../../context/AppLauncherContext";
-import {
-  basenameFromPath,
-  type FilterTag,
-  type LauncherApp,
-} from "../../types/appLauncher";
+import { useState } from "react";
+import type { LauncherApp } from "../../types/appLauncher";
+import { AddAppModal } from "./AddAppModal";
 import { AppListItem } from "./AppListItem";
 
 type ApplicationsSectionProps = {
   apps: LauncherApp[];
   layout: "list" | "grid";
   selectedIndex: number;
+  isLoading?: boolean;
   onSelectIndex: (index: number) => void;
   onLaunch: (app: LauncherApp) => void;
 };
@@ -20,10 +18,11 @@ export function ApplicationsSection({
   apps,
   layout,
   selectedIndex,
+  isLoading = false,
   onSelectIndex,
   onLaunch,
 }: ApplicationsSectionProps) {
-  const { addApp } = useAppLauncher();
+  const [pendingPath, setPendingPath] = useState<string | null>(null);
 
   const handleAdd = async () => {
     const selected = await open({
@@ -34,7 +33,7 @@ export function ApplicationsSection({
       ],
     });
     if (typeof selected === "string") {
-      addApp(selected, basenameFromPath(selected));
+      setPendingPath(selected);
     }
   };
 
@@ -53,9 +52,18 @@ export function ApplicationsSection({
         </button>
       </div>
 
-      {apps.length === 0 ? (
+      {isLoading ? (
+        <div className="space-y-2 py-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-11 animate-pulse rounded-lg deck-surface"
+            />
+          ))}
+        </div>
+      ) : apps.length === 0 ? (
         <p className="py-6 text-center text-sm text-[var(--color-deck-muted)]">
-          Нет приложений
+          Приложения не найдены
         </p>
       ) : (
         <LayoutGroup>
@@ -69,7 +77,7 @@ export function ApplicationsSection({
           >
             {apps.map((app, index) => (
               <AppListItem
-                key={app.id}
+                key={app.path}
                 app={app}
                 layout={layout}
                 selected={index === selectedIndex}
@@ -81,6 +89,13 @@ export function ApplicationsSection({
           </motion.div>
         </LayoutGroup>
       )}
+
+      {pendingPath && (
+        <AddAppModal
+          path={pendingPath}
+          onClose={() => setPendingPath(null)}
+        />
+      )}
     </section>
   );
 }
@@ -88,11 +103,11 @@ export function ApplicationsSection({
 export function useFilteredApps(
   apps: LauncherApp[],
   query: string,
-  filterTag: FilterTag,
+  filterId: string | "all",
 ): LauncherApp[] {
   return apps.filter((app) => {
     const matchesTag =
-      filterTag === "all" || app.category === filterTag;
+      filterId === "all" || app.categoryIds.includes(filterId);
     const matchesQuery =
       query.trim() === "" ||
       app.name.toLowerCase().includes(query.trim().toLowerCase());

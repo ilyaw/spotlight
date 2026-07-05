@@ -14,19 +14,19 @@ import { isMacPlatform } from "../../../lib/platform";
 export function ShortcutManagerSection() {
   const { apps, setAppShortcut, clearAppShortcut } = useAppLauncher();
   const { hotkey, setHotkey, resetHotkey, error } = useHotkey();
-  const [recordingAppId, setRecordingAppId] = useState<string | null>(null);
+  const [recordingPath, setRecordingPath] = useState<string | null>(null);
   const [recordingToggle, setRecordingToggle] = useState(false);
   const isMac = isMacPlatform();
 
   useEffect(() => {
-    if (!recordingAppId && !recordingToggle) return;
+    if (!recordingPath && !recordingToggle) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
       event.preventDefault();
       event.stopPropagation();
 
       if (event.code === "Escape") {
-        setRecordingAppId(null);
+        setRecordingPath(null);
         setRecordingToggle(false);
         return;
       }
@@ -39,15 +39,15 @@ export function ShortcutManagerSection() {
       if (recordingToggle) {
         setHotkey(combo);
         setRecordingToggle(false);
-      } else if (recordingAppId) {
-        setAppShortcut(recordingAppId, combo);
-        setRecordingAppId(null);
+      } else if (recordingPath) {
+        setAppShortcut(recordingPath, combo);
+        setRecordingPath(null);
       }
     };
 
     window.addEventListener("keydown", handleKeyDown, true);
     return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [recordingAppId, recordingToggle, setAppShortcut, setHotkey]);
+  }, [recordingPath, recordingToggle, setAppShortcut, setHotkey]);
 
   return (
     <section className="space-y-3">
@@ -63,7 +63,7 @@ export function ShortcutManagerSection() {
           <button
             type="button"
             onClick={() => {
-              setRecordingAppId(null);
+              setRecordingPath(null);
               setRecordingToggle(true);
             }}
             className={`font-mono-deck flex h-9 flex-1 items-center justify-center rounded-lg px-3 text-xs transition-colors ${
@@ -99,50 +99,61 @@ export function ShortcutManagerSection() {
         <p className="text-xs text-[var(--color-deck-muted)]">
           Шорткаты приложений (внутри окна)
         </p>
-        {apps.map((app) => {
-          const isRecording = recordingAppId === app.id;
-          return (
-            <div key={app.id} className="flex items-center gap-2">
-              <span
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-[10px] font-medium text-white"
-                style={{ backgroundColor: app.color }}
-              >
-                {app.initials}
-              </span>
-              <span className="min-w-0 flex-1 truncate text-sm">
-                {app.name}
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  setRecordingToggle(false);
-                  setRecordingAppId(app.id);
-                }}
-                className={`font-mono-deck rounded-lg px-2.5 py-1.5 text-[10px] transition-colors ${
-                  isRecording
-                    ? "bg-[var(--color-deck-accent)]/20 text-[var(--color-deck-accent)] ring-1 ring-[var(--color-deck-accent)]/40"
-                    : "deck-surface hover:bg-[var(--color-deck-surface-hover)]"
-                }`}
-              >
-                {isRecording
-                  ? "…"
-                  : app.shortcut
-                    ? comboToDisplay(app.shortcut, isMac)
-                    : "Назначить"}
-              </button>
-              {app.shortcut && (
+        {apps.length === 0 ? (
+          <p className="text-[10px] text-[var(--color-deck-muted)]">
+            Нет приложений для назначения
+          </p>
+        ) : (
+          apps.map((app) => {
+            const isRecording = recordingPath === app.path;
+            return (
+              <div key={app.path} className="flex items-center gap-2">
+                {app.icon ? (
+                  <img
+                    src={app.icon}
+                    alt=""
+                    className="h-7 w-7 shrink-0 rounded object-contain"
+                  />
+                ) : (
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded deck-surface text-[10px] text-[var(--color-deck-muted)]">
+                    ?
+                  </span>
+                )}
+                <span className="min-w-0 flex-1 truncate text-sm">
+                  {app.name}
+                </span>
                 <button
                   type="button"
-                  onClick={() => clearAppShortcut(app.id)}
-                  className="rounded p-1 text-[var(--color-deck-muted)] hover:bg-[var(--color-deck-surface-hover)]"
-                  aria-label="Очистить"
+                  onClick={() => {
+                    setRecordingToggle(false);
+                    setRecordingPath(app.path);
+                  }}
+                  className={`font-mono-deck rounded-lg px-2.5 py-1.5 text-[10px] transition-colors ${
+                    isRecording
+                      ? "bg-[var(--color-deck-accent)]/20 text-[var(--color-deck-accent)] ring-1 ring-[var(--color-deck-accent)]/40"
+                      : "deck-surface hover:bg-[var(--color-deck-surface-hover)]"
+                  }`}
                 >
-                  <RotateCcw className="h-3 w-3" />
+                  {isRecording
+                    ? "…"
+                    : app.shortcut
+                      ? comboToDisplay(app.shortcut, isMac)
+                      : "Назначить"}
                 </button>
-              )}
-            </div>
-          );
-        })}
+                {app.shortcut && (
+                  <button
+                    type="button"
+                    onClick={() => clearAppShortcut(app.path)}
+                    className="rounded p-1 text-[var(--color-deck-muted)] hover:bg-[var(--color-deck-surface-hover)]"
+                    aria-label="Очистить"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            );
+          })
+        )}
       </div>
     </section>
   );

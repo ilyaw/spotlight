@@ -1,5 +1,6 @@
 import { ChevronLeft } from "lucide-react";
 import { AppearanceSection } from "./AppearanceSection";
+import { CategoriesSection } from "./CategoriesSection";
 import { LauncherModeSection } from "./LauncherModeSection";
 import { ShortcutManagerSection } from "./ShortcutManagerSection";
 
@@ -24,6 +25,7 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
 
       <div className="flex-1 space-y-6 overflow-y-auto px-4 py-4">
         <LauncherModeSection />
+        <CategoriesSection />
         <ShortcutManagerSection />
         <AppearanceSection />
       </div>
