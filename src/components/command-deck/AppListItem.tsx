@@ -8,6 +8,7 @@ type AppListItemProps = {
   layout: "list" | "grid";
   index: number;
   selected: boolean;
+  hideShortcut?: boolean;
   onSelect: () => void;
   onLaunch: () => void;
   onHover: () => void;
@@ -18,6 +19,7 @@ export function AppListItem({
   layout,
   index,
   selected,
+  hideShortcut = false,
   onSelect,
   onLaunch,
   onHover,
@@ -77,7 +79,7 @@ export function AppListItem({
         >
           {app.name}
         </span>
-        {isList && app.shortcut && (
+        {isList && app.shortcut && !hideShortcut && (
           <kbd className="font-mono-deck shrink-0 rounded deck-surface px-1.5 py-0.5 text-[10px] text-[var(--color-deck-muted)]">
             {comboToDisplay(app.shortcut, isMac)}
           </kbd>

@@ -8,6 +8,7 @@ import { isWindowsPlatform } from "../../lib/platform";
 import {
   resolveLayout,
   shouldShowFilters,
+  shouldShowShortcutBar,
   type LauncherApp,
 } from "../../types/appLauncher";
 import {
@@ -23,6 +24,7 @@ import {
 } from "../../hooks/useWindowAutoHeight";
 import { CommandDeckSearch } from "./CommandDeckSearch";
 import { FilterTags } from "./FilterTags";
+import { ShortcutBar } from "./ShortcutBar";
 import {
   ApplicationsSection,
   useFilteredApps,
@@ -42,12 +44,14 @@ export function CommandDeckPanel() {
     apps,
     layoutMode,
     filterSettings,
+    showShortcutBar,
     isLoading,
     scanError,
     refreshApps,
   } = useAppLauncher();
 
   const showFilters = shouldShowFilters(filterSettings);
+  const showShortcutBarPanel = shouldShowShortcutBar(showShortcutBar, apps);
   const filteredApps = useFilteredApps(
     apps,
     query,
@@ -61,6 +65,7 @@ export function CommandDeckPanel() {
     query,
     filterTag,
     showFilters,
+    showShortcutBarPanel,
     isLoading,
     scanError,
   ]);
@@ -210,11 +215,18 @@ export function CommandDeckPanel() {
               {showFilters && (
                 <FilterTags active={filterTag} onChange={setFilterTag} />
               )}
+              {showShortcutBarPanel && (
+                <ShortcutBar
+                  apps={apps}
+                  onLaunch={(app) => void handleLaunch(app)}
+                />
+              )}
               <ApplicationsSection
                 apps={filteredApps}
                 layout={layout}
                 selectedIndex={selectedIndex}
                 isLoading={isLoading}
+                hideShortcutsInList={showShortcutBarPanel}
                 onSelectIndex={setSelectedIndex}
                 onLaunch={(app) => void handleLaunch(app)}
               />

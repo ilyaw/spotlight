@@ -24,6 +24,7 @@ type AppLauncherContextValue = {
   apps: LauncherApp[];
   layoutMode: LauncherLayoutMode;
   filterSettings: FilterSettings;
+  showShortcutBar: boolean;
   isLoading: boolean;
   scanError: string | null;
   setLayoutMode: (mode: LauncherLayoutMode) => void;
@@ -40,6 +41,7 @@ type AppLauncherContextValue = {
   updateFilter: (id: string, label: string) => void;
   removeFilter: (id: string) => void;
   setFiltersEnabled: (enabled: boolean) => void;
+  setShowShortcutBar: (enabled: boolean) => void;
 };
 
 const AppLauncherContext = createContext<AppLauncherContextValue | null>(null);
@@ -59,6 +61,8 @@ function loadPersistedSettings(): AppLauncherSettings {
         ...parsed.filterSettings,
         filters: parsed.filterSettings?.filters ?? [],
       },
+      showShortcutBar:
+        parsed.showShortcutBar ?? DEFAULT_APP_LAUNCHER_SETTINGS.showShortcutBar,
       hasIndexedApps: parsed.hasIndexedApps ?? false,
       indexedApps: parsed.indexedApps ?? [],
       hiddenAppPaths: parsed.hiddenAppPaths ?? [],
@@ -335,11 +339,16 @@ export function AppLauncherProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const setShowShortcutBar = useCallback((enabled: boolean) => {
+    setPersisted((prev) => ({ ...prev, showShortcutBar: enabled }));
+  }, []);
+
   const value = useMemo<AppLauncherContextValue>(
     () => ({
       apps,
       layoutMode: persisted.layoutMode,
       filterSettings: persisted.filterSettings,
+      showShortcutBar: persisted.showShortcutBar,
       isLoading,
       scanError,
       setLayoutMode,
@@ -356,11 +365,13 @@ export function AppLauncherProvider({ children }: { children: ReactNode }) {
       updateFilter,
       removeFilter,
       setFiltersEnabled,
+      setShowShortcutBar,
     }),
     [
       apps,
       persisted.layoutMode,
       persisted.filterSettings,
+      persisted.showShortcutBar,
       isLoading,
       scanError,
       setLayoutMode,
@@ -377,6 +388,7 @@ export function AppLauncherProvider({ children }: { children: ReactNode }) {
       updateFilter,
       removeFilter,
       setFiltersEnabled,
+      setShowShortcutBar,
     ],
   );
 

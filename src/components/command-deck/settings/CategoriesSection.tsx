@@ -8,10 +8,12 @@ import { CategoryAssignmentBoard } from "./CategoryAssignmentBoard";
 export function CategoriesSection() {
   const {
     filterSettings,
+    showShortcutBar,
     addFilter,
     updateFilter,
     removeFilter,
     setFiltersEnabled,
+    setShowShortcutBar,
   } = useAppLauncher();
   const [newLabel, setNewLabel] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -61,6 +63,16 @@ export function CategoriesSection() {
             type="checkbox"
             checked={filterSettings.enabled}
             onChange={(e) => setFiltersEnabled(e.target.checked)}
+            className="h-4 w-4 accent-[var(--color-deck-accent)]"
+          />
+        </label>
+
+        <label className="flex cursor-pointer items-center justify-between rounded-lg deck-surface px-3 py-2.5">
+          <span className="text-sm">Показывать шорткаты на главном экране</span>
+          <input
+            type="checkbox"
+            checked={showShortcutBar}
+            onChange={(e) => setShowShortcutBar(e.target.checked)}
             className="h-4 w-4 accent-[var(--color-deck-accent)]"
           />
         </label>

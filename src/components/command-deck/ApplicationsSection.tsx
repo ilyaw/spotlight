@@ -8,6 +8,7 @@ type ApplicationsSectionProps = {
   layout: "list" | "grid";
   selectedIndex: number;
   isLoading?: boolean;
+  hideShortcutsInList?: boolean;
   onSelectIndex: (index: number) => void;
   onLaunch: (app: LauncherApp) => void;
 };
@@ -17,6 +18,7 @@ export function ApplicationsSection({
   layout,
   selectedIndex,
   isLoading = false,
+  hideShortcutsInList = false,
   onSelectIndex,
   onLaunch,
 }: ApplicationsSectionProps) {
@@ -70,6 +72,7 @@ export function ApplicationsSection({
                     layout={layout}
                     index={index}
                     selected={index === selectedIndex}
+                    hideShortcut={hideShortcutsInList}
                     onSelect={() => onSelectIndex(index)}
                     onLaunch={() => onLaunch(app)}
                     onHover={() => onSelectIndex(index)}

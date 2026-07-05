@@ -48,6 +48,7 @@ export type AppLauncherSettings = {
   manualApps: ManualAppEntry[];
   overrides: AppOverride[];
   filterSettings: FilterSettings;
+  showShortcutBar: boolean;
   /** System apps indexed on the very first launch; not re-scanned afterwards. */
   hasIndexedApps: boolean;
   indexedApps: InstalledApp[];
@@ -68,6 +69,7 @@ export const DEFAULT_APP_LAUNCHER_SETTINGS: AppLauncherSettings = {
   manualApps: [],
   overrides: [],
   filterSettings: DEFAULT_FILTER_SETTINGS,
+  showShortcutBar: false,
   hasIndexedApps: false,
   indexedApps: [],
   hiddenAppPaths: [],
@@ -142,4 +144,11 @@ export function mergeApps(
 
 export function shouldShowFilters(settings: FilterSettings): boolean {
   return settings.enabled && settings.filters.length > 0;
+}
+
+export function shouldShowShortcutBar(
+  enabled: boolean,
+  apps: LauncherApp[],
+): boolean {
+  return enabled && apps.some((a) => a.shortcut);
 }
