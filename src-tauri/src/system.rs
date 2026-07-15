@@ -1,3 +1,4 @@
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -28,6 +29,7 @@ impl Default for SystemBehavior {
 pub struct RuntimeSettings {
     pub inner: Arc<Mutex<SystemBehavior>>,
     opened_at: Arc<Mutex<Option<Instant>>>,
+    suppress_focus_hide: Arc<AtomicBool>,
 }
 
 impl RuntimeSettings {
@@ -35,6 +37,7 @@ impl RuntimeSettings {
         Self {
             inner: Arc::new(Mutex::new(behavior)),
             opened_at: Arc::new(Mutex::new(None)),
+            suppress_focus_hide: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -46,6 +49,17 @@ impl RuntimeSettings {
 
     pub fn opened_at_handle(&self) -> Arc<Mutex<Option<Instant>>> {
         self.opened_at.clone()
+    }
+
+    pub fn set_suppress_focus_hide(&self, suppress: bool) {
+        self.suppress_focus_hide.store(suppress, Ordering::SeqCst);
+        if suppress {
+            self.mark_recently_opened();
+        }
+    }
+
+    pub fn suppress_focus_hide_handle(&self) -> Arc<AtomicBool> {
+        self.suppress_focus_hide.clone()
     }
 }
 
@@ -113,6 +127,7 @@ pub fn attach_window_handlers(
     window: &WebviewWindow,
     settings: Arc<Mutex<SystemBehavior>>,
     opened_at: Arc<Mutex<Option<Instant>>>,
+    suppress_focus_hide: Arc<AtomicBool>,
 ) {
     let window_for_close = window.clone();
     let window_for_focus = window.clone();
@@ -134,7 +149,11 @@ pub fn attach_window_handlers(
                 }
             }
             tauri::WindowEvent::Focused(false) => {
-                if behavior.hide_on_focus_loss && !should_suppress_focus_hide(&opened_at_for_focus) {
+                let dialog_open = suppress_focus_hide.load(Ordering::SeqCst);
+                if behavior.hide_on_focus_loss
+                    && !dialog_open
+                    && !should_suppress_focus_hide(&opened_at_for_focus)
+                {
                     if let Err(err) = window_for_focus.hide() {
                         eprintln!("Failed to hide window on focus loss: {err}");
                     }

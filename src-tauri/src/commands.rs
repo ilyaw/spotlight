@@ -1,15 +1,27 @@
 use std::path::Path;
 
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
 use tauri_plugin_opener::OpenerExt;
 
 use crate::apps::{self, types::InstalledApp};
-use crate::system::{apply_system_behavior as apply_behavior, SystemBehavior};
+use crate::system::{apply_system_behavior as apply_behavior, RuntimeSettings, SystemBehavior};
 
 #[tauri::command]
 pub fn apply_system_behavior(app: AppHandle, behavior: SystemBehavior) -> Result<(), String> {
     apply_behavior(&app, behavior)
+}
+
+#[tauri::command]
+pub fn set_suppress_focus_hide(
+    app: AppHandle,
+    suppress: bool,
+) -> Result<(), String> {
+    let settings = app
+        .try_state::<RuntimeSettings>()
+        .ok_or_else(|| "Runtime settings unavailable".to_string())?;
+    settings.set_suppress_focus_hide(suppress);
+    Ok(())
 }
 
 #[tauri::command]

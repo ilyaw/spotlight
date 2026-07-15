@@ -43,12 +43,13 @@ fn toggle_window_visibility(
     if window.is_visible()? {
         window.hide()
     } else {
-        window.show()?;
-        window.set_focus()?;
+        // Mark before show/focus so a transient Focused(false) during
+        // activation does not immediately hide the panel.
         if let Some(settings) = app.try_state::<RuntimeSettings>() {
             settings.mark_recently_opened();
         }
-        Ok(())
+        window.show()?;
+        window.set_focus()
     }
 }
 
@@ -98,6 +99,7 @@ pub fn run() {
                     &window,
                     settings.inner.clone(),
                     settings.opened_at_handle(),
+                    settings.suppress_focus_hide_handle(),
                 );
 
                 if default_behavior.show_window_on_launch {
@@ -119,6 +121,7 @@ pub fn run() {
             commands::scan_installed_apps,
             commands::get_app_metadata,
             commands::apply_system_behavior,
+            commands::set_suppress_focus_hide,
             commands::quit_app,
         ])
         .run(tauri::generate_context!())

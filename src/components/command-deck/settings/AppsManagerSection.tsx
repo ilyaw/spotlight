@@ -1,23 +1,25 @@
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import { open } from "@tauri-apps/plugin-dialog";
 import { useAppLauncher } from "../../../context/AppLauncherContext";
+import { pickAppPath } from "../../../lib/pickAppPath";
 import { AddAppModal } from "../AddAppModal";
 
 export function AppsManagerSection() {
   const { apps, removeApp } = useAppLauncher();
   const [pendingPath, setPendingPath] = useState<string | null>(null);
+  const [pickerError, setPickerError] = useState<string | null>(null);
 
   const handleAdd = async () => {
-    const selected = await open({
-      multiple: false,
-      directory: false,
-      filters: [
-        { name: "Applications", extensions: ["app", "exe", "bat", "sh"] },
-      ],
-    });
-    if (typeof selected === "string") {
-      setPendingPath(selected);
+    setPickerError(null);
+    try {
+      const selected = await pickAppPath();
+      if (selected) {
+        setPendingPath(selected);
+      }
+    } catch (err) {
+      setPickerError(
+        err instanceof Error ? err.message : "Не удалось открыть диалог выбора",
+      );
     }
   };
 
@@ -42,6 +44,10 @@ export function AppsManagerSection() {
           Добавить
         </button>
       </div>
+
+      {pickerError && (
+        <p className="text-xs text-red-400">{pickerError}</p>
+      )}
 
       {apps.length === 0 ? (
         <p className="text-xs text-[var(--color-deck-muted)]">
