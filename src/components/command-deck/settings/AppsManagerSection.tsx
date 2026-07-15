@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Star, Trash2 } from "lucide-react";
 import { useAppLauncher } from "../../../context/AppLauncherContext";
 import { pickAppPath } from "../../../lib/pickAppPath";
 import { AddAppModal } from "../AddAppModal";
 
 export function AppsManagerSection() {
-  const { apps, removeApp } = useAppLauncher();
+  const { apps, removeApp, toggleAppPinned, pinnedAppPaths } = useAppLauncher();
   const [pendingPath, setPendingPath] = useState<string | null>(null);
   const [pickerError, setPickerError] = useState<string | null>(null);
 
@@ -55,7 +55,10 @@ export function AppsManagerSection() {
         </p>
       ) : (
         <div className="deck-scroll-area min-h-0 flex-1 space-y-1 overflow-y-auto pr-1">
-          {apps.map((app) => (
+          {apps.map((app) => {
+            const pinned = pinnedAppPaths.includes(app.path);
+
+            return (
             <div
               key={app.path}
               className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-[var(--color-deck-surface-hover)]"
@@ -79,6 +82,21 @@ export function AppsManagerSection() {
               </div>
               <button
                 type="button"
+                onClick={() => toggleAppPinned(app.path)}
+                className={`shrink-0 rounded-md p-2 transition-colors ${
+                  pinned
+                    ? "text-[var(--color-deck-accent)] hover:bg-[var(--color-deck-accent)]/15"
+                    : "text-[var(--color-deck-muted)] hover:bg-[var(--color-deck-surface-hover)] hover:text-[var(--color-deck-text)]"
+                }`}
+                aria-label={pinned ? `Убрать ${app.name} из избранного` : `Добавить ${app.name} в избранное`}
+              >
+                <Star
+                  className="h-4 w-4"
+                  fill={pinned ? "currentColor" : "none"}
+                />
+              </button>
+              <button
+                type="button"
                 onClick={() => removeApp(app.path)}
                 className="shrink-0 rounded-md p-2 text-[var(--color-deck-muted)] transition-colors hover:bg-red-500/15 hover:text-red-400"
                 aria-label={`Удалить ${app.name}`}
@@ -86,7 +104,8 @@ export function AppsManagerSection() {
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

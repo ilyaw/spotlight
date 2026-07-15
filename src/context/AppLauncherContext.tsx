@@ -11,6 +11,7 @@ import {
   APP_LAUNCHER_STORAGE_KEY,
   DEFAULT_APP_LAUNCHER_SETTINGS,
   mergeApps,
+  sanitizePinnedAppPaths,
   type AppLauncherSettings,
   type FilterSettings,
   type LauncherApp,
@@ -24,6 +25,7 @@ type AppLauncherContextValue = {
   layoutMode: LauncherLayoutMode;
   filterSettings: FilterSettings;
   showShortcutBar: boolean;
+  pinnedAppPaths: string[];
   setLayoutMode: (mode: LauncherLayoutMode) => void;
   addManualApp: (entry: ManualAppEntry) => void;
   removeApp: (path: string) => void;
@@ -38,6 +40,8 @@ type AppLauncherContextValue = {
   removeFilter: (id: string) => void;
   setFiltersEnabled: (enabled: boolean) => void;
   setShowShortcutBar: (enabled: boolean) => void;
+  toggleAppPinned: (path: string) => void;
+  setAppPinned: (path: string, pinned: boolean) => void;
 };
 
 const AppLauncherContext = createContext<AppLauncherContextValue | null>(null);
@@ -70,6 +74,10 @@ function loadPersistedSettings(): AppLauncherSettings {
       },
       showShortcutBar:
         parsed.showShortcutBar ?? DEFAULT_APP_LAUNCHER_SETTINGS.showShortcutBar,
+      pinnedAppPaths: sanitizePinnedAppPaths(
+        parsed.pinnedAppPaths ?? [],
+        parsed.manualApps ?? [],
+      ),
     };
   } catch {
     return { ...DEFAULT_APP_LAUNCHER_SETTINGS };
@@ -151,6 +159,7 @@ export function AppLauncherProvider({ children }: { children: ReactNode }) {
       ...prev,
       manualApps: prev.manualApps.filter((a) => a.path !== path),
       overrides: prev.overrides.filter((o) => o.path !== path),
+      pinnedAppPaths: prev.pinnedAppPaths.filter((p) => p !== path),
     }));
   }, []);
 
@@ -263,12 +272,45 @@ export function AppLauncherProvider({ children }: { children: ReactNode }) {
     setPersisted((prev) => ({ ...prev, showShortcutBar: enabled }));
   }, []);
 
+  const setAppPinned = useCallback((path: string, pinned: boolean) => {
+    setPersisted((prev) => {
+      if (!prev.manualApps.some((app) => app.path === path)) return prev;
+
+      const hasPath = prev.pinnedAppPaths.includes(path);
+      if (pinned && !hasPath) {
+        return { ...prev, pinnedAppPaths: [...prev.pinnedAppPaths, path] };
+      }
+      if (!pinned && hasPath) {
+        return {
+          ...prev,
+          pinnedAppPaths: prev.pinnedAppPaths.filter((p) => p !== path),
+        };
+      }
+      return prev;
+    });
+  }, []);
+
+  const toggleAppPinned = useCallback((path: string) => {
+    setPersisted((prev) => {
+      if (!prev.manualApps.some((app) => app.path === path)) return prev;
+
+      const hasPath = prev.pinnedAppPaths.includes(path);
+      return {
+        ...prev,
+        pinnedAppPaths: hasPath
+          ? prev.pinnedAppPaths.filter((p) => p !== path)
+          : [...prev.pinnedAppPaths, path],
+      };
+    });
+  }, []);
+
   const value = useMemo<AppLauncherContextValue>(
     () => ({
       apps,
       layoutMode: persisted.layoutMode,
       filterSettings: persisted.filterSettings,
       showShortcutBar: persisted.showShortcutBar,
+      pinnedAppPaths: persisted.pinnedAppPaths,
       setLayoutMode,
       addManualApp,
       removeApp,
@@ -283,12 +325,15 @@ export function AppLauncherProvider({ children }: { children: ReactNode }) {
       removeFilter,
       setFiltersEnabled,
       setShowShortcutBar,
+      toggleAppPinned,
+      setAppPinned,
     }),
     [
       apps,
       persisted.layoutMode,
       persisted.filterSettings,
       persisted.showShortcutBar,
+      persisted.pinnedAppPaths,
       setLayoutMode,
       addManualApp,
       removeApp,
@@ -303,6 +348,8 @@ export function AppLauncherProvider({ children }: { children: ReactNode }) {
       removeFilter,
       setFiltersEnabled,
       setShowShortcutBar,
+      toggleAppPinned,
+      setAppPinned,
     ],
   );
 

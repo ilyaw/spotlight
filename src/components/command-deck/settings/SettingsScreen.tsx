@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ChevronLeft } from "lucide-react";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { startWindowDrag } from "../../../lib/startWindowDrag";
 import { AppsManagerSection } from "./AppsManagerSection";
 import { AppearanceSection } from "./AppearanceSection";
 import { CategoriesSection } from "./CategoriesSection";
@@ -35,7 +35,7 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
 
   const handleDragMouseDown = (event: React.MouseEvent) => {
     if (event.button !== 0) return;
-    void getCurrentWindow().startDragging();
+    void startWindowDrag();
   };
 
   return (

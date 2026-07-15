@@ -1,9 +1,9 @@
 import { forwardRef } from "react";
 import { Search, SlidersHorizontal } from "lucide-react";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useHotkey } from "../../context/HotkeyContext";
 import { comboToDisplay } from "../../types/hotkey";
 import { isMacPlatform } from "../../lib/platform";
+import { startWindowDrag } from "../../lib/startWindowDrag";
 
 type CommandDeckSearchProps = {
   value: string;
@@ -22,13 +22,20 @@ export const CommandDeckSearch = forwardRef<
   const { hotkey } = useHotkey();
   const isMac = isMacPlatform();
 
-  const handleMouseDown = (event: React.MouseEvent<HTMLInputElement>) => {
+  const handleDragMouseDown = (event: React.MouseEvent) => {
     if (event.button !== 0) return;
-    void getCurrentWindow().startDragging();
+    void startWindowDrag();
+  };
+
+  const stopDragPropagation = (event: React.MouseEvent) => {
+    event.stopPropagation();
   };
 
   return (
-    <div className="flex shrink-0 items-center gap-3 border-b deck-border px-4 py-3.5">
+    <div
+      className="flex shrink-0 items-center gap-3 border-b deck-border px-4 py-3.5"
+      onMouseDown={handleDragMouseDown}
+    >
       <Search
         className="h-5 w-5 shrink-0 text-[var(--color-deck-muted)]"
         strokeWidth={2}
@@ -39,7 +46,7 @@ export const CommandDeckSearch = forwardRef<
         value={value}
         onChange={(event) => onChange(event.target.value)}
         onKeyDown={onKeyDown}
-        onMouseDown={handleMouseDown}
+        onMouseDown={stopDragPropagation}
         placeholder="Введите команду..."
         className="min-w-0 flex-1 bg-[var(--color-deck-input-bg)] text-base text-[var(--color-deck-text)] placeholder:text-[var(--color-deck-muted)] outline-none"
         autoComplete="off"
@@ -48,6 +55,7 @@ export const CommandDeckSearch = forwardRef<
       <button
         type="button"
         onClick={onOpenSettings}
+        onMouseDown={stopDragPropagation}
         className="rounded-md p-1.5 text-[var(--color-deck-muted)] transition-colors hover:bg-[var(--color-deck-surface-hover)] hover:text-[var(--color-deck-text)]"
         aria-label="Настройки"
       >

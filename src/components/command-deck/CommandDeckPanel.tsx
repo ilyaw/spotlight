@@ -6,6 +6,8 @@ import { useAppLauncher } from "../../context/AppLauncherContext";
 import { launchApp } from "../../lib/launchApp";
 import { isWindowsPlatform } from "../../lib/platform";
 import {
+  getPinnedApps,
+  isCompactMode,
   resolveLayout,
   shouldShowFilters,
   shouldShowShortcutBar,
@@ -25,6 +27,7 @@ import {
 import { CommandDeckSearch } from "./CommandDeckSearch";
 import { FilterTags } from "./FilterTags";
 import { ShortcutBar } from "./ShortcutBar";
+import { FavoritesBar } from "./FavoritesBar";
 import {
   ApplicationsSection,
   useFilteredApps,
@@ -40,21 +43,33 @@ export function CommandDeckPanel() {
   const [filterTag, setFilterTag] = useState<string | "all">("all");
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const { apps, layoutMode, filterSettings, showShortcutBar } =
+  const { apps, layoutMode, filterSettings, showShortcutBar, pinnedAppPaths } =
     useAppLauncher();
 
-  const showFilters = shouldShowFilters(filterSettings);
-  const showShortcutBarPanel = shouldShowShortcutBar(showShortcutBar, apps);
+  const isCompact = isCompactMode(layoutMode);
+  const showFilters = shouldShowFilters(filterSettings) && !isCompact;
+  const showShortcutBarPanel =
+    !isCompact && shouldShowShortcutBar(showShortcutBar, apps);
   const filteredApps = useFilteredApps(
     apps,
     query,
     showFilters ? filterTag : "all",
   );
+  const pinnedApps = getPinnedApps(apps, pinnedAppPaths);
+  const compactFilteredApps = isCompact
+    ? pinnedApps.filter((app) =>
+        app.name.toLowerCase().includes(query.toLowerCase()),
+      )
+    : [];
+  const navigableApps = isCompact ? compactFilteredApps : filteredApps;
   const layout = resolveLayout(layoutMode, filteredApps.length);
 
   const panelRef = useWindowAutoHeight(view, [
     filteredApps.length,
     layout,
+    layoutMode,
+    pinnedAppPaths.length,
+    compactFilteredApps.length,
     query,
     filterTag,
     showFilters,
@@ -67,7 +82,7 @@ export function CommandDeckPanel() {
 
   useEffect(() => {
     setSelectedIndex(0);
-  }, [query, filterTag, filteredApps.length]);
+  }, [query, filterTag, navigableApps.length, isCompact]);
 
   useEffect(() => {
     if (!showFilters) {
@@ -131,13 +146,39 @@ export function CommandDeckPanel() {
     (event: React.KeyboardEvent<HTMLInputElement>) => {
       if (view === "settings") return;
 
+      if (isCompact) {
+        switch (event.key) {
+          case "ArrowRight":
+          case "ArrowDown":
+            event.preventDefault();
+            setSelectedIndex((i) =>
+              navigableApps.length === 0
+                ? 0
+                : Math.min(i + 1, navigableApps.length - 1),
+            );
+            break;
+          case "ArrowLeft":
+          case "ArrowUp":
+            event.preventDefault();
+            setSelectedIndex((i) => Math.max(i - 1, 0));
+            break;
+          case "Enter": {
+            event.preventDefault();
+            const selected = navigableApps[selectedIndex];
+            if (selected) void handleLaunch(selected);
+            break;
+          }
+        }
+        return;
+      }
+
       switch (event.key) {
         case "ArrowDown":
           event.preventDefault();
           setSelectedIndex((i) =>
-            filteredApps.length === 0
+            navigableApps.length === 0
               ? 0
-              : Math.min(i + 1, filteredApps.length - 1),
+              : Math.min(i + 1, navigableApps.length - 1),
           );
           break;
         case "ArrowUp":
@@ -146,13 +187,13 @@ export function CommandDeckPanel() {
           break;
         case "Enter": {
           event.preventDefault();
-          const selected = filteredApps[selectedIndex];
+          const selected = navigableApps[selectedIndex];
           if (selected) void handleLaunch(selected);
           break;
         }
       }
     },
-    [view, filteredApps, selectedIndex, handleLaunch],
+    [view, isCompact, navigableApps, selectedIndex, handleLaunch],
   );
 
   const settingsOpen = view === "settings";
@@ -192,7 +233,7 @@ export function CommandDeckPanel() {
           ) : (
             <motion.div
               key="main-view"
-              className="flex max-h-[800px] min-h-0 flex-col overflow-hidden"
+              className={`flex min-h-0 flex-col overflow-hidden${isCompact ? "" : " max-h-[800px]"}`}
               initial={{ opacity: 0, x: -24 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -24 }}
@@ -205,23 +246,36 @@ export function CommandDeckPanel() {
                 onKeyDown={handleKeyDown}
                 onOpenSettings={() => setView("settings")}
               />
-              {showFilters && (
-                <FilterTags active={filterTag} onChange={setFilterTag} />
-              )}
-              {showShortcutBarPanel && (
-                <ShortcutBar
-                  apps={apps}
+              {isCompact ? (
+                <FavoritesBar
+                  apps={compactFilteredApps}
+                  selectedIndex={selectedIndex}
+                  hasPinnedApps={pinnedApps.length > 0}
+                  query={query}
                   onLaunch={(app) => void handleLaunch(app)}
+                  onSelectIndex={setSelectedIndex}
                 />
+              ) : (
+                <>
+                  {showFilters && (
+                    <FilterTags active={filterTag} onChange={setFilterTag} />
+                  )}
+                  {showShortcutBarPanel && (
+                    <ShortcutBar
+                      apps={apps}
+                      onLaunch={(app) => void handleLaunch(app)}
+                    />
+                  )}
+                  <ApplicationsSection
+                    apps={filteredApps}
+                    layout={layout}
+                    selectedIndex={selectedIndex}
+                    hideShortcutsInList={showShortcutBarPanel}
+                    onSelectIndex={setSelectedIndex}
+                    onLaunch={(app) => void handleLaunch(app)}
+                  />
+                </>
               )}
-              <ApplicationsSection
-                apps={filteredApps}
-                layout={layout}
-                selectedIndex={selectedIndex}
-                hideShortcutsInList={showShortcutBarPanel}
-                onSelectIndex={setSelectedIndex}
-                onLaunch={(app) => void handleLaunch(app)}
-              />
             </motion.div>
           )}
         </AnimatePresence>

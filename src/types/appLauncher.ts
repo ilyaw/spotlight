@@ -35,11 +35,12 @@ export type ManualAppEntry = {
   categoryIds: string[];
 };
 
-export type LauncherLayoutMode = "auto" | "list" | "grid";
+export type LauncherLayoutMode = "auto" | "list" | "grid" | "compact";
 
 export type LauncherApp = InstalledApp & {
   categoryIds: string[];
   shortcut?: HotkeyCombo | null;
+  pinned: boolean;
   source: "manual";
 };
 
@@ -49,6 +50,7 @@ export type AppLauncherSettings = {
   overrides: AppOverride[];
   filterSettings: FilterSettings;
   showShortcutBar: boolean;
+  pinnedAppPaths: string[];
 };
 
 export const APP_LAUNCHER_STORAGE_KEY = "spotlight-app-launcher-settings";
@@ -65,12 +67,18 @@ export const DEFAULT_APP_LAUNCHER_SETTINGS: AppLauncherSettings = {
   overrides: [],
   filterSettings: DEFAULT_FILTER_SETTINGS,
   showShortcutBar: false,
+  pinnedAppPaths: [],
 };
+
+export function isCompactMode(mode: LauncherLayoutMode): boolean {
+  return mode === "compact";
+}
 
 export function resolveLayout(
   mode: LauncherLayoutMode,
   count: number,
 ): "list" | "grid" {
+  if (mode === "compact") return "list";
   if (mode === "list") return "list";
   if (mode === "grid") return "grid";
   return count <= 9 ? "list" : "grid";
@@ -88,6 +96,7 @@ export function mergeApps(settings: AppLauncherSettings): LauncherApp[] {
   const overrideByPath = new Map(
     settings.overrides.map((o) => [o.path, o]),
   );
+  const pinnedPaths = new Set(settings.pinnedAppPaths ?? []);
 
   const apps: LauncherApp[] = settings.manualApps.map((manual) => {
     const override = overrideByPath.get(manual.path);
@@ -98,6 +107,7 @@ export function mergeApps(settings: AppLauncherSettings): LauncherApp[] {
       icon: manual.icon,
       categoryIds: manual.categoryIds,
       shortcut: override?.shortcut ?? null,
+      pinned: pinnedPaths.has(manual.path),
       source: "manual" as const,
     };
   });
@@ -105,6 +115,33 @@ export function mergeApps(settings: AppLauncherSettings): LauncherApp[] {
   return apps.sort((a, b) =>
     a.name.toLowerCase().localeCompare(b.name.toLowerCase()),
   );
+}
+
+export function sanitizePinnedAppPaths(
+  pinnedAppPaths: string[],
+  manualApps: ManualAppEntry[],
+): string[] {
+  const manualPaths = new Set(manualApps.map((app) => app.path));
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const path of pinnedAppPaths) {
+    if (!manualPaths.has(path) || seen.has(path)) continue;
+    seen.add(path);
+    result.push(path);
+  }
+
+  return result;
+}
+
+export function getPinnedApps(
+  apps: LauncherApp[],
+  pinnedAppPaths: string[],
+): LauncherApp[] {
+  const appByPath = new Map(apps.map((app) => [app.path, app]));
+  return pinnedAppPaths
+    .map((path) => appByPath.get(path))
+    .filter((app): app is LauncherApp => app != null);
 }
 
 export function shouldShowFilters(settings: FilterSettings): boolean {
