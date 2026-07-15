@@ -9,6 +9,7 @@ use crate::system::{attach_window_handlers, apply_system_behavior, RuntimeSettin
 
 /// Matches the frontend's `DEFAULT_HOTKEY` in `src/types/hotkey.ts`.
 const DEFAULT_SHORTCUT: &str = "Alt+Space";
+const TOGGLE_DEBOUNCE: std::time::Duration = std::time::Duration::from_millis(300);
 
 /// Frameless + rounded UI needs platform-specific transparency setup.
 /// `transparent: true` alone is not enough: macOS still paints an opaque
@@ -36,20 +37,106 @@ fn configure_transparent_window(window: &tauri::WebviewWindow) {
     }
 }
 
+fn show_spotlight_panel(
+    app: &tauri::AppHandle,
+    window: &tauri::WebviewWindow,
+) -> tauri::Result<()> {
+    if let Some(settings) = app.try_state::<RuntimeSettings>() {
+        settings.mark_recently_opened();
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        use std::sync::mpsc;
+
+        use objc2::MainThreadMarker;
+        use objc2_app_kit::{NSApplication, NSWindow};
+
+        // Temporarily become a regular app so macOS lets us take focus
+        // from a global hotkey (Accessory + set_focus alone is unreliable).
+        let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
+
+        let window = window.clone();
+        let (tx, rx) = mpsc::channel();
+
+        app.run_on_main_thread(move || {
+            let result = (|| -> tauri::Result<()> {
+                if let Some(mtm) = MainThreadMarker::new() {
+                    #[allow(deprecated)]
+                    NSApplication::sharedApplication(mtm).activateIgnoringOtherApps(true);
+                }
+
+                window.unminimize()?;
+                window.show()?;
+                window.set_focus()?;
+
+                if let Ok(ns_window_ptr) = window.ns_window() {
+                    // SAFETY: live NSWindow* from Tauri for this window's lifetime.
+                    let ns_window = unsafe { &*(ns_window_ptr as *mut NSWindow) };
+                    ns_window.makeKeyAndOrderFront(None);
+                    ns_window.orderFrontRegardless();
+                }
+
+                Ok(())
+            })();
+            let _ = tx.send(result);
+        })?;
+
+        return rx
+            .recv()
+            .map_err(|_| tauri::Error::FailedToReceiveMessage)?;
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = app;
+        window.unminimize()?;
+        window.show()?;
+        window.set_focus()?;
+        Ok(())
+    }
+}
+
+fn hide_spotlight_panel(
+    app: &tauri::AppHandle,
+    window: &tauri::WebviewWindow,
+) -> tauri::Result<()> {
+    window.hide()?;
+
+    #[cfg(target_os = "macos")]
+    {
+        let hide_from_taskbar = app
+            .try_state::<RuntimeSettings>()
+            .and_then(|settings| {
+                settings
+                    .inner
+                    .lock()
+                    .ok()
+                    .map(|behavior| behavior.hide_from_taskbar)
+            })
+            .unwrap_or(true);
+
+        if hide_from_taskbar {
+            let _ = app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = app;
+    }
+
+    Ok(())
+}
+
 fn toggle_window_visibility(
     app: &tauri::AppHandle,
     window: &tauri::WebviewWindow,
 ) -> tauri::Result<()> {
     if window.is_visible()? {
-        window.hide()
+        hide_spotlight_panel(app, window)
     } else {
-        // Mark before show/focus so a transient Focused(false) during
-        // activation does not immediately hide the panel.
-        if let Some(settings) = app.try_state::<RuntimeSettings>() {
-            settings.mark_recently_opened();
-        }
-        window.show()?;
-        window.set_focus()
+        show_spotlight_panel(app, window)
     }
 }
 
@@ -66,15 +153,25 @@ pub fn run() {
         ))
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
-                .with_handler(|app, _shortcut, event| {
+                .with_handler(|app, shortcut, event| {
                     if event.state() != ShortcutState::Pressed {
                         return;
                     }
+
+                    if let Some(settings) = app.try_state::<RuntimeSettings>() {
+                        if !settings.try_begin_toggle(TOGGLE_DEBOUNCE) {
+                            return;
+                        }
+                    }
+
+                    eprintln!("Global shortcut pressed: {shortcut:?}");
 
                     if let Some(window) = app.get_webview_window("main") {
                         if let Err(err) = toggle_window_visibility(app, &window) {
                             eprintln!("Failed to toggle window visibility: {err}");
                         }
+                    } else {
+                        eprintln!("Global shortcut: main window not found");
                     }
                 })
                 .build(),
@@ -118,7 +215,6 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::launch_app,
             commands::update_global_shortcut,
-            commands::scan_installed_apps,
             commands::get_app_metadata,
             commands::apply_system_behavior,
             commands::set_suppress_focus_hide,

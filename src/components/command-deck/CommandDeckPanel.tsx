@@ -40,15 +40,8 @@ export function CommandDeckPanel() {
   const [filterTag, setFilterTag] = useState<string | "all">("all");
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const {
-    apps,
-    layoutMode,
-    filterSettings,
-    showShortcutBar,
-    isLoading,
-    scanError,
-    refreshApps,
-  } = useAppLauncher();
+  const { apps, layoutMode, filterSettings, showShortcutBar } =
+    useAppLauncher();
 
   const showFilters = shouldShowFilters(filterSettings);
   const showShortcutBarPanel = shouldShowShortcutBar(showShortcutBar, apps);
@@ -66,8 +59,6 @@ export function CommandDeckPanel() {
     filterTag,
     showFilters,
     showShortcutBarPanel,
-    isLoading,
-    scanError,
   ]);
 
   useEffect(() => {
@@ -214,18 +205,6 @@ export function CommandDeckPanel() {
                 onKeyDown={handleKeyDown}
                 onOpenSettings={() => setView("settings")}
               />
-              {scanError && (
-                <div className="mx-4 mb-2 flex items-center justify-between gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
-                  <span className="min-w-0 truncate">{scanError}</span>
-                  <button
-                    type="button"
-                    onClick={() => void refreshApps()}
-                    className="shrink-0 rounded px-2 py-0.5 hover:bg-red-500/20"
-                  >
-                    Повторить
-                  </button>
-                </div>
-              )}
               {showFilters && (
                 <FilterTags active={filterTag} onChange={setFilterTag} />
               )}
@@ -239,7 +218,6 @@ export function CommandDeckPanel() {
                 apps={filteredApps}
                 layout={layout}
                 selectedIndex={selectedIndex}
-                isLoading={isLoading}
                 hideShortcutsInList={showShortcutBarPanel}
                 onSelectIndex={setSelectedIndex}
                 onLaunch={(app) => void handleLaunch(app)}

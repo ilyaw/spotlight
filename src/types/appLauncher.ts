@@ -40,7 +40,7 @@ export type LauncherLayoutMode = "auto" | "list" | "grid";
 export type LauncherApp = InstalledApp & {
   categoryIds: string[];
   shortcut?: HotkeyCombo | null;
-  source: "system" | "manual";
+  source: "manual";
 };
 
 export type AppLauncherSettings = {
@@ -49,11 +49,6 @@ export type AppLauncherSettings = {
   overrides: AppOverride[];
   filterSettings: FilterSettings;
   showShortcutBar: boolean;
-  /** System apps indexed on the very first launch; not re-scanned afterwards. */
-  hasIndexedApps: boolean;
-  indexedApps: InstalledApp[];
-  /** Paths of system apps hidden from the launcher by the user. */
-  hiddenAppPaths: string[];
 };
 
 export const APP_LAUNCHER_STORAGE_KEY = "spotlight-app-launcher-settings";
@@ -70,9 +65,6 @@ export const DEFAULT_APP_LAUNCHER_SETTINGS: AppLauncherSettings = {
   overrides: [],
   filterSettings: DEFAULT_FILTER_SETTINGS,
   showShortcutBar: false,
-  hasIndexedApps: false,
-  indexedApps: [],
-  hiddenAppPaths: [],
 };
 
 export function resolveLayout(
@@ -91,53 +83,26 @@ export function basenameFromPath(path: string): string {
   return base.replace(/\.(app|exe)$/i, "");
 }
 
-export function mergeApps(
-  scanned: InstalledApp[],
-  settings: AppLauncherSettings,
-): LauncherApp[] {
+/** Build launcher apps from manually added entries only. */
+export function mergeApps(settings: AppLauncherSettings): LauncherApp[] {
   const overrideByPath = new Map(
     settings.overrides.map((o) => [o.path, o]),
   );
-  const hiddenPaths = new Set(settings.hiddenAppPaths);
-  const byPath = new Map<string, LauncherApp>();
 
-  for (const app of scanned) {
-    if (hiddenPaths.has(app.path)) continue;
-    const override = overrideByPath.get(app.path);
-    byPath.set(app.path, {
-      ...app,
-      categoryIds: override?.categoryIds ?? [],
-      shortcut: override?.shortcut ?? null,
-      source: "system",
-    });
-  }
-
-  for (const manual of settings.manualApps) {
+  const apps: LauncherApp[] = settings.manualApps.map((manual) => {
     const override = overrideByPath.get(manual.path);
-    const existing = byPath.get(manual.path);
-    if (existing) {
-      byPath.set(manual.path, {
-        ...existing,
-        name: manual.name,
-        icon: manual.icon || existing.icon,
-        categoryIds: manual.categoryIds,
-        shortcut: override?.shortcut ?? existing.shortcut ?? null,
-        source: "manual",
-      });
-    } else {
-      byPath.set(manual.path, {
-        id: manual.path,
-        name: manual.name,
-        path: manual.path,
-        icon: manual.icon,
-        categoryIds: manual.categoryIds,
-        shortcut: override?.shortcut ?? null,
-        source: "manual",
-      });
-    }
-  }
+    return {
+      id: manual.path,
+      name: manual.name,
+      path: manual.path,
+      icon: manual.icon,
+      categoryIds: manual.categoryIds,
+      shortcut: override?.shortcut ?? null,
+      source: "manual" as const,
+    };
+  });
 
-  return Array.from(byPath.values()).sort((a, b) =>
+  return apps.sort((a, b) =>
     a.name.toLowerCase().localeCompare(b.name.toLowerCase()),
   );
 }

@@ -31,8 +31,8 @@ export function AppsManagerSection() {
             Приложения
           </h3>
           <p className="mt-1 text-xs text-[var(--color-deck-muted)]">
-            Добавляйте и удаляйте приложения в лаунчере. Удаление системных
-            скрывает их из списка.
+            Добавляйте нужные приложения вручную — в лаунчере будет только
+            ваш список.
           </p>
         </div>
         <button
@@ -73,8 +73,8 @@ export function AppsManagerSection() {
               )}
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{app.name}</p>
-                <p className="text-[10px] text-[var(--color-deck-muted)]">
-                  {app.source === "manual" ? "Добавлено вручную" : "Системное"}
+                <p className="truncate text-[10px] text-[var(--color-deck-muted)]">
+                  {app.path}
                 </p>
               </div>
               <button

@@ -7,7 +7,6 @@ type ApplicationsSectionProps = {
   apps: LauncherApp[];
   layout: "list" | "grid";
   selectedIndex: number;
-  isLoading?: boolean;
   hideShortcutsInList?: boolean;
   onSelectIndex: (index: number) => void;
   onLaunch: (app: LauncherApp) => void;
@@ -17,7 +16,6 @@ export function ApplicationsSection({
   apps,
   layout,
   selectedIndex,
-  isLoading = false,
   hideShortcutsInList = false,
   onSelectIndex,
   onLaunch,
@@ -37,18 +35,9 @@ export function ApplicationsSection({
         Приложения
       </h2>
 
-      {isLoading ? (
-        <div className="space-y-2 py-2">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-11 animate-pulse rounded-lg deck-surface"
-            />
-          ))}
-        </div>
-      ) : apps.length === 0 ? (
+      {apps.length === 0 ? (
         <p className="py-6 text-center text-sm text-[var(--color-deck-muted)]">
-          Приложения не найдены
+          Добавьте приложения в настройках
         </p>
       ) : (
         <div

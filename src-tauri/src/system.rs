@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 
 use tauri::{AppHandle, Manager, WebviewWindow};
 
-const FOCUS_HIDE_GRACE: Duration = Duration::from_millis(250);
+const FOCUS_HIDE_GRACE: Duration = Duration::from_millis(500);
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -30,6 +30,7 @@ pub struct RuntimeSettings {
     pub inner: Arc<Mutex<SystemBehavior>>,
     opened_at: Arc<Mutex<Option<Instant>>>,
     suppress_focus_hide: Arc<AtomicBool>,
+    last_toggle_at: Arc<Mutex<Option<Instant>>>,
 }
 
 impl RuntimeSettings {
@@ -38,6 +39,7 @@ impl RuntimeSettings {
             inner: Arc::new(Mutex::new(behavior)),
             opened_at: Arc::new(Mutex::new(None)),
             suppress_focus_hide: Arc::new(AtomicBool::new(false)),
+            last_toggle_at: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -49,6 +51,22 @@ impl RuntimeSettings {
 
     pub fn opened_at_handle(&self) -> Arc<Mutex<Option<Instant>>> {
         self.opened_at.clone()
+    }
+
+    /// Returns false if a toggle happened too recently (duplicate Pressed events).
+    pub fn try_begin_toggle(&self, debounce: Duration) -> bool {
+        let Ok(mut guard) = self.last_toggle_at.lock() else {
+            return true;
+        };
+
+        if let Some(last) = *guard {
+            if last.elapsed() < debounce {
+                return false;
+            }
+        }
+
+        *guard = Some(Instant::now());
+        true
     }
 
     pub fn set_suppress_focus_hide(&self, suppress: bool) {

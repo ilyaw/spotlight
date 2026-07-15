@@ -7,7 +7,6 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { fetchInstalledApps } from "../lib/tauriApps";
 import {
   APP_LAUNCHER_STORAGE_KEY,
   DEFAULT_APP_LAUNCHER_SETTINGS,
@@ -25,10 +24,7 @@ type AppLauncherContextValue = {
   layoutMode: LauncherLayoutMode;
   filterSettings: FilterSettings;
   showShortcutBar: boolean;
-  isLoading: boolean;
-  scanError: string | null;
   setLayoutMode: (mode: LauncherLayoutMode) => void;
-  refreshApps: () => Promise<void>;
   addManualApp: (entry: ManualAppEntry) => void;
   removeApp: (path: string) => void;
   setAppShortcut: (path: string, shortcut: HotkeyCombo | null) => void;
@@ -46,16 +42,27 @@ type AppLauncherContextValue = {
 
 const AppLauncherContext = createContext<AppLauncherContextValue | null>(null);
 
+type LegacyPersistedSettings = Partial<AppLauncherSettings> & {
+  hasIndexedApps?: boolean;
+  indexedApps?: unknown;
+  hiddenAppPaths?: unknown;
+};
+
 function loadPersistedSettings(): AppLauncherSettings {
   try {
     const raw = localStorage.getItem(APP_LAUNCHER_STORAGE_KEY);
     if (!raw) return { ...DEFAULT_APP_LAUNCHER_SETTINGS };
 
-    const parsed = JSON.parse(raw) as Partial<AppLauncherSettings>;
+    const parsed = JSON.parse(raw) as LegacyPersistedSettings;
+    const manualPaths = new Set(
+      (parsed.manualApps ?? []).map((a) => a.path),
+    );
+
+    // Drop legacy system-scan fields; keep overrides only for manual apps.
     return {
       layoutMode: parsed.layoutMode ?? DEFAULT_APP_LAUNCHER_SETTINGS.layoutMode,
       manualApps: parsed.manualApps ?? [],
-      overrides: parsed.overrides ?? [],
+      overrides: (parsed.overrides ?? []).filter((o) => manualPaths.has(o.path)),
       filterSettings: {
         ...DEFAULT_APP_LAUNCHER_SETTINGS.filterSettings,
         ...parsed.filterSettings,
@@ -63,9 +70,6 @@ function loadPersistedSettings(): AppLauncherSettings {
       },
       showShortcutBar:
         parsed.showShortcutBar ?? DEFAULT_APP_LAUNCHER_SETTINGS.showShortcutBar,
-      hasIndexedApps: parsed.hasIndexedApps ?? false,
-      indexedApps: parsed.indexedApps ?? [],
-      hiddenAppPaths: parsed.hiddenAppPaths ?? [],
     };
   } catch {
     return { ...DEFAULT_APP_LAUNCHER_SETTINGS };
@@ -107,22 +111,13 @@ function applyCategoryUpdate(
   categoryIds: string[],
 ): AppLauncherSettings {
   const isManual = prev.manualApps.some((a) => a.path === path);
-  if (isManual) {
-    return {
-      ...prev,
-      manualApps: prev.manualApps.map((a) =>
-        a.path === path ? { ...a, categoryIds } : a,
-      ),
-    };
-  }
+  if (!isManual) return prev;
 
-  const existing = prev.overrides.find((o) => o.path === path);
   return {
     ...prev,
-    overrides: upsertOverride(prev.overrides, path, {
-      categoryIds,
-      shortcut: existing?.shortcut ?? null,
-    }),
+    manualApps: prev.manualApps.map((a) =>
+      a.path === path ? { ...a, categoryIds } : a,
+    ),
   };
 }
 
@@ -130,69 +125,12 @@ export function AppLauncherProvider({ children }: { children: ReactNode }) {
   const [persisted, setPersisted] = useState<AppLauncherSettings>(
     loadPersistedSettings,
   );
-  const [isLoading, setIsLoading] = useState(!persisted.hasIndexedApps);
-  const [scanError, setScanError] = useState<string | null>(null);
 
   useEffect(() => {
     persistSettings(persisted);
   }, [persisted]);
 
-  const refreshApps = useCallback(async () => {
-    setIsLoading(true);
-    setScanError(null);
-    try {
-      const installed = await fetchInstalledApps();
-      setPersisted((prev) => ({
-        ...prev,
-        hasIndexedApps: true,
-        indexedApps: installed,
-      }));
-    } catch (err) {
-      setScanError(
-        err instanceof Error ? err.message : "Failed to scan installed apps",
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (persisted.hasIndexedApps) return;
-
-    let cancelled = false;
-
-    const runInitialScan = async () => {
-      setIsLoading(true);
-      setScanError(null);
-      try {
-        const installed = await fetchInstalledApps();
-        if (cancelled) return;
-        setPersisted((prev) => ({
-          ...prev,
-          hasIndexedApps: true,
-          indexedApps: installed,
-        }));
-      } catch (err) {
-        if (cancelled) return;
-        setScanError(
-          err instanceof Error ? err.message : "Failed to scan installed apps",
-        );
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    };
-
-    void runInitialScan();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [persisted.hasIndexedApps]);
-
-  const apps = useMemo(
-    () => mergeApps(persisted.indexedApps, persisted),
-    [persisted],
-  );
+  const apps = useMemo(() => mergeApps(persisted), [persisted]);
 
   const setLayoutMode = useCallback((layoutMode: LauncherLayoutMode) => {
     setPersisted((prev) => ({ ...prev, layoutMode }));
@@ -204,32 +142,16 @@ export function AppLauncherProvider({ children }: { children: ReactNode }) {
       return {
         ...prev,
         manualApps: [...without, entry],
-        hiddenAppPaths: prev.hiddenAppPaths.filter((p) => p !== entry.path),
       };
     });
   }, []);
 
   const removeApp = useCallback((path: string) => {
-    setPersisted((prev) => {
-      const isManual = prev.manualApps.some((a) => a.path === path);
-      if (isManual) {
-        return {
-          ...prev,
-          manualApps: prev.manualApps.filter((a) => a.path !== path),
-          overrides: prev.overrides.filter((o) => o.path !== path),
-        };
-      }
-
-      const hiddenAppPaths = prev.hiddenAppPaths.includes(path)
-        ? prev.hiddenAppPaths
-        : [...prev.hiddenAppPaths, path];
-
-      return {
-        ...prev,
-        hiddenAppPaths,
-        overrides: prev.overrides.filter((o) => o.path !== path),
-      };
-    });
+    setPersisted((prev) => ({
+      ...prev,
+      manualApps: prev.manualApps.filter((a) => a.path !== path),
+      overrides: prev.overrides.filter((o) => o.path !== path),
+    }));
   }, []);
 
   const setAppShortcut = useCallback(
@@ -258,7 +180,7 @@ export function AppLauncherProvider({ children }: { children: ReactNode }) {
 
   const addAppToCategory = useCallback((path: string, categoryId: string) => {
     setPersisted((prev) => {
-      const app = mergeApps(prev.indexedApps, prev).find((a) => a.path === path);
+      const app = mergeApps(prev).find((a) => a.path === path);
       if (!app || app.categoryIds.includes(categoryId)) return prev;
       return applyCategoryUpdate(prev, path, [...app.categoryIds, categoryId]);
     });
@@ -267,9 +189,7 @@ export function AppLauncherProvider({ children }: { children: ReactNode }) {
   const removeAppFromCategory = useCallback(
     (path: string, categoryId: string) => {
       setPersisted((prev) => {
-        const app = mergeApps(prev.indexedApps, prev).find(
-          (a) => a.path === path,
-        );
+        const app = mergeApps(prev).find((a) => a.path === path);
         if (!app) return prev;
         return applyCategoryUpdate(
           prev,
@@ -349,10 +269,7 @@ export function AppLauncherProvider({ children }: { children: ReactNode }) {
       layoutMode: persisted.layoutMode,
       filterSettings: persisted.filterSettings,
       showShortcutBar: persisted.showShortcutBar,
-      isLoading,
-      scanError,
       setLayoutMode,
-      refreshApps,
       addManualApp,
       removeApp,
       setAppShortcut,
@@ -372,10 +289,7 @@ export function AppLauncherProvider({ children }: { children: ReactNode }) {
       persisted.layoutMode,
       persisted.filterSettings,
       persisted.showShortcutBar,
-      isLoading,
-      scanError,
       setLayoutMode,
-      refreshApps,
       addManualApp,
       removeApp,
       setAppShortcut,

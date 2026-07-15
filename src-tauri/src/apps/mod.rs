@@ -6,12 +6,7 @@ use tauri::AppHandle;
 use tauri::Manager;
 
 use self::icon::cache_dir;
-use self::types::{AppMetadata, InstalledApp};
-
-pub fn scan_apps(app: &AppHandle) -> Result<Vec<InstalledApp>, String> {
-    let cache = app_cache_dir(app)?;
-    scanner::scan_installed_apps(&cache)
-}
+use self::types::AppMetadata;
 
 pub fn app_metadata(app: &AppHandle, path: String) -> Result<AppMetadata, String> {
     let trimmed = path.trim();

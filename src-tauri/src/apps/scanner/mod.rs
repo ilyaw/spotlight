@@ -5,21 +5,7 @@ mod windows;
 
 use std::path::Path;
 
-use super::types::{AppMetadata, InstalledApp};
-
-pub fn scan_installed_apps(cache_dir: &Path) -> Result<Vec<InstalledApp>, String> {
-    #[cfg(target_os = "macos")]
-    return macos::scan(cache_dir);
-
-    #[cfg(target_os = "windows")]
-    return windows::scan(cache_dir);
-
-    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-    {
-        let _ = cache_dir;
-        Ok(Vec::new())
-    }
-}
+use super::types::AppMetadata;
 
 pub fn metadata_for_path(path: &str, cache_dir: &Path) -> Result<AppMetadata, String> {
     #[cfg(target_os = "macos")]
