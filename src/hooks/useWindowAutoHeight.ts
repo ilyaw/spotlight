@@ -1,8 +1,8 @@
 import { useLayoutEffect, useRef, type RefObject } from "react";
 import { LogicalSize } from "@tauri-apps/api/dpi";
 import { currentMonitor, getCurrentWindow } from "@tauri-apps/api/window";
+import { GLOW_BLEED_PX } from "../lib/panelLayout";
 
-const GLOW_BLEED = 16;
 const SCREEN_MARGIN = 16;
 
 const MAIN_PANEL_WIDTH = 680;
@@ -14,7 +14,7 @@ export { SETTINGS_PANEL_HEIGHT, SETTINGS_PANEL_WIDTH };
 export type PanelView = "main" | "settings";
 
 function windowWidthForPanel(panelWidth: number): number {
-  return panelWidth + GLOW_BLEED * 2;
+  return panelWidth + GLOW_BLEED_PX * 2;
 }
 
 async function resolveScreenMaxHeight(): Promise<number> {
@@ -70,7 +70,7 @@ export function useWindowAutoHeight(
 
         const height =
           view === "settings"
-            ? SETTINGS_PANEL_HEIGHT + GLOW_BLEED * 2
+            ? SETTINGS_PANEL_HEIGHT + GLOW_BLEED_PX * 2
             : Math.ceil(measurePanelHeight(targetRef.current));
 
         void getCurrentWindow().setSize(

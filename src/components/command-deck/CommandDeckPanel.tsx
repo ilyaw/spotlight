@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { RgbBorderWrapper } from "../RgbBorderWrapper";
 import { useAppLauncher } from "../../context/AppLauncherContext";
 import { useHotkey } from "../../context/HotkeyContext";
 import { launchApp } from "../../lib/launchApp";
-import { isWindowsPlatform } from "../../lib/platform";
+import { GLOW_BLEED_PX } from "../../lib/panelLayout";
 import {
   getPinnedApps,
   isCompactMode,
@@ -209,8 +209,13 @@ export function CommandDeckPanel() {
       initial={{ opacity: 0, scale: 0.96, y: -8 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
-      className={`spotlight-glow-bleed w-full${isWindowsPlatform() ? " spotlight-panel-shadow" : ""}`}
-      style={{ maxWidth: panelMaxWidth(view) }}
+      className="spotlight-glow-bleed spotlight-panel-shadow w-full"
+      style={
+        {
+          maxWidth: panelMaxWidth(view),
+          "--rgb-glow-bleed": `${GLOW_BLEED_PX}px`,
+        } as CSSProperties
+      }
     >
       <RgbBorderWrapper
         variant="full-panel"

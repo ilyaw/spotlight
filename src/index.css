@@ -4,7 +4,8 @@
 @theme {
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   --radius-deck: 0.75rem;
-  --rgb-glow-bleed: 16px;
+  /* Fallback only — panel root sets --rgb-glow-bleed from GLOW_BLEED_PX. */
+  --rgb-glow-bleed: 52px;
 
   --animate-rgb-spin: rgb-spin var(--rgb-duration, 3s) linear infinite;
   --animate-rgb-sweep: rgb-sweep var(--rgb-duration, 4s) linear infinite;
@@ -249,8 +250,14 @@ body {
   opacity: 0.45;
 }
 
-.spotlight-panel-shadow {
-  filter: drop-shadow(0 16px 40px rgb(0 0 0 / 0.55));
+/* Soft multi-layer elevation on the panel contour (not filter on bleed padding).
+   Max extent ≈ 14 + 32 = 46px; keep GLOW_BLEED_PX above that. */
+.spotlight-panel-shadow > .rgb-border-wrapper,
+.spotlight-panel-shadow > .deck-panel {
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.1),
+    0 6px 18px rgb(0 0 0 / 0.12),
+    0 14px 32px rgb(0 0 0 / 0.08);
 }
 
 .deck-scroll-area {

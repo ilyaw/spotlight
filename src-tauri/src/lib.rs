@@ -13,9 +13,16 @@ const TOGGLE_DEBOUNCE: std::time::Duration = std::time::Duration::from_millis(30
 
 /// Frameless + rounded UI needs platform-specific transparency setup.
 /// `transparent: true` alone is not enough: macOS still paints an opaque
-/// `NSWindow` layer in the corners, and Windows draws a rectangular native
-/// shadow that shows up as grey artifacts around rounded CSS corners.
+/// `NSWindow` layer in the corners, and OS window shadows follow the
+/// rectangular bounds (grey plate around rounded CSS corners).
 fn configure_transparent_window(window: &tauri::WebviewWindow) {
+    // Native OS shadows follow the rectangular window bounds and read as a
+    // hard "plate" behind rounded CSS corners. Soft elevation is CSS-only
+    // (`.spotlight-panel-shadow`) on every platform.
+    if let Err(err) = window.set_shadow(false) {
+        eprintln!("Failed to disable native window shadow: {err}");
+    }
+
     #[cfg(target_os = "macos")]
     {
         use objc2_app_kit::{NSColor, NSWindow};
@@ -29,11 +36,6 @@ fn configure_transparent_window(window: &tauri::WebviewWindow) {
         let ns_window = unsafe { &*(ns_window_ptr as *mut NSWindow) };
         ns_window.setOpaque(false);
         ns_window.setBackgroundColor(Some(&NSColor::clearColor()));
-    }
-
-    #[cfg(target_os = "windows")]
-    if let Err(err) = window.set_shadow(false) {
-        eprintln!("Failed to disable window shadow on Windows: {err}");
     }
 }
 
