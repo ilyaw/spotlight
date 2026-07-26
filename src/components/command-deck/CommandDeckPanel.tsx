@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { RgbBorderWrapper } from "../RgbBorderWrapper";
 import { useAppLauncher } from "../../context/AppLauncherContext";
+import { useHotkey } from "../../context/HotkeyContext";
 import { launchApp } from "../../lib/launchApp";
 import { isWindowsPlatform } from "../../lib/platform";
 import {
@@ -16,7 +17,7 @@ import {
 import {
   comboFromEvent,
   combosEqual,
-  hasModifier,
+  hasChordModifier,
   isModifierCode,
 } from "../../types/hotkey";
 import {
@@ -45,6 +46,7 @@ export function CommandDeckPanel() {
 
   const { apps, layoutMode, filterSettings, showShortcutBar, pinnedAppPaths } =
     useAppLauncher();
+  const { isRecording } = useHotkey();
 
   const isCompact = isCompactMode(layoutMode);
   const showFilters = shouldShowFilters(filterSettings) && !isCompact;
@@ -114,12 +116,15 @@ export function CommandDeckPanel() {
 
   const tryAppShortcut = useCallback(
     (event: KeyboardEvent | React.KeyboardEvent): boolean => {
+      if (view === "settings") return false;
+      if (isRecording) return false;
       if (event.defaultPrevented) return false;
       if (isEditableShortcutBlocked(event.target)) return false;
       if (isModifierCode(event.code)) return false;
 
       const combo = comboFromEvent(event);
-      if (!hasModifier(combo)) return false;
+      // Need Ctrl/Meta/Alt — Shift-only would steal capital letters in search.
+      if (!hasChordModifier(combo)) return false;
 
       const matched = apps.find(
         (a) => a.shortcut && combosEqual(a.shortcut, combo),
@@ -130,7 +135,7 @@ export function CommandDeckPanel() {
       void handleLaunch(matched);
       return true;
     },
-    [apps, handleLaunch, isEditableShortcutBlocked],
+    [apps, handleLaunch, isEditableShortcutBlocked, isRecording, view],
   );
 
   useEffect(() => {

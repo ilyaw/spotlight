@@ -6,8 +6,10 @@ import {
   comboFromEvent,
   comboToDisplay,
   DEFAULT_HOTKEY,
+  hasChordModifier,
   hasModifier,
   isModifierCode,
+  isReservedAppShortcutCode,
 } from "../../../types/hotkey";
 import { isMacPlatform } from "../../../lib/platform";
 
@@ -40,19 +42,24 @@ export function ShortcutManagerSection() {
       if (isModifierCode(event.code)) return;
 
       const combo = comboFromEvent(event);
-      if (!hasModifier(combo)) return;
 
       if (recordingToggle) {
+        if (!hasModifier(combo)) return;
         setHotkey(combo);
         stopRecording();
       } else if (recordingPath) {
+        if (isReservedAppShortcutCode(event.code)) return;
+        if (!hasChordModifier(combo)) return;
         setAppShortcut(recordingPath, combo);
         stopRecording();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown, true);
-    return () => window.removeEventListener("keydown", handleKeyDown, true);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown, true);
+      setHotkeyRecording(false);
+    };
   }, [
     recordingPath,
     recordingToggle,
@@ -150,7 +157,7 @@ export function ShortcutManagerSection() {
                     }`}
                   >
                     {isRecording
-                      ? "…"
+                      ? "Ctrl/⌘/Alt + клавиша…"
                       : app.shortcut
                         ? comboToDisplay(app.shortcut, isMac)
                         : "Назначить"}

@@ -14,13 +14,10 @@ type FavoritesBarProps = {
 };
 
 function emptyMessage(hasPinnedApps: boolean, query: string): string {
-  if (!hasPinnedApps) {
-    return "Добавьте избранное в настройках";
+  if (hasPinnedApps && query.trim()) {
+    return "Ничего не найдено в избранном";
   }
-  if (query.trim()) {
-    return "Ничего не найдено";
-  }
-  return "Добавьте избранное в настройках";
+  return "Добавьте избранное в настройках приложений";
 }
 
 export function FavoritesBar({
@@ -44,11 +41,10 @@ export function FavoritesBar({
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0, height: 0 }}
-        animate={{ opacity: 1, height: "auto" }}
-        exit={{ opacity: 0, height: 0 }}
-        transition={{ duration: 0.2, ease: "easeOut" }}
-        className="overflow-hidden"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.15, ease: "easeOut" }}
       >
         {apps.length === 0 ? (
           <p className="px-4 py-2 text-xs text-[var(--color-deck-muted)]">
@@ -61,13 +57,25 @@ export function FavoritesBar({
           >
             {apps.map((app, index) => {
               const selected = index === selectedIndex;
+              const shortcutLabel = app.shortcut
+                ? comboToDisplay(app.shortcut, isMac)
+                : null;
 
               return (
                 <button
                   key={app.path}
                   type="button"
                   data-favorite-index={index}
-                  title={app.name}
+                  title={
+                    shortcutLabel
+                      ? `${app.name} (${shortcutLabel})`
+                      : app.name
+                  }
+                  aria-label={
+                    shortcutLabel
+                      ? `${app.name}, ${shortcutLabel}`
+                      : app.name
+                  }
                   onClick={() => {
                     onSelectIndex(index);
                     onLaunch(app);
@@ -78,9 +86,9 @@ export function FavoritesBar({
                       : "deck-surface hover:bg-[var(--color-deck-surface-hover)]"
                   }`}
                 >
-                  {app.shortcut && (
+                  {shortcutLabel && (
                     <kbd className="font-mono-deck rounded px-1.5 py-0.5 text-[10px] leading-none text-[var(--color-deck-muted)]">
-                      {comboToDisplay(app.shortcut, isMac)}
+                      {shortcutLabel}
                     </kbd>
                   )}
                   {app.icon ? (

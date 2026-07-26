@@ -2,13 +2,18 @@ import { useAppLauncher } from "../../../context/AppLauncherContext";
 import type { LauncherLayoutMode } from "../../../types/appLauncher";
 
 const MODES: { id: LauncherLayoutMode; label: string; description?: string }[] = [
-  { id: "auto", label: "Автоматически" },
   { id: "list", label: "Вертикальный список" },
   { id: "grid", label: "Сетка" },
   {
     id: "compact",
-    label: "Компактный",
-    description: "Поиск + избранное в строку",
+    label: "Только избранное",
+    description:
+      "Строка + избранное из настроек приложений (со звёздой) с хоткеями, без списка",
+  },
+  {
+    id: "auto",
+    label: "Автоматически",
+    description: "Список до 9 · Сетка если >9",
   },
 ];
 
@@ -32,14 +37,7 @@ export function LauncherModeSection() {
                 : "deck-surface text-[var(--color-deck-muted)] hover:bg-[var(--color-deck-surface-hover)]"
             }`}
           >
-            {mode.id === "auto" ? (
-              <>
-                <span className="font-medium">Автоматически</span>
-                <span className="mt-0.5 block text-xs opacity-70">
-                  Список до 9 · Сетка если &gt;9
-                </span>
-              </>
-            ) : mode.description ? (
+            {mode.description ? (
               <>
                 <span className="font-medium">{mode.label}</span>
                 <span className="mt-0.5 block text-xs opacity-70">

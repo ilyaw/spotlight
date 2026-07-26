@@ -41,8 +41,42 @@ export function isModifierCode(code: string): boolean {
   return MODIFIER_CODES.has(code);
 }
 
+const RESERVED_APP_SHORTCUT_CODES = new Set([
+  "Escape",
+  "Enter",
+  "Tab",
+  "Space",
+  "Backspace",
+  "ArrowUp",
+  "ArrowDown",
+  "ArrowLeft",
+  "ArrowRight",
+]);
+
+/** Keys reserved for navigation / system — cannot be assigned as app shortcuts. */
+export function isReservedAppShortcutCode(code: string): boolean {
+  return isModifierCode(code) || RESERVED_APP_SHORTCUT_CODES.has(code);
+}
+
 export function hasModifier(combo: HotkeyCombo): boolean {
   return combo.ctrlKey || combo.metaKey || combo.altKey || combo.shiftKey;
+}
+
+/** Ctrl/Meta/Alt — Shift alone conflicts with typing capitals in search. */
+export function hasChordModifier(combo: HotkeyCombo): boolean {
+  return combo.ctrlKey || combo.metaKey || combo.altKey;
+}
+
+export function isValidAppShortcutCombo(combo: HotkeyCombo): boolean {
+  return hasChordModifier(combo) && !isReservedAppShortcutCode(combo.code);
+}
+
+/** Drop bare-key / Shift-only / reserved combos from persisted shortcuts. */
+export function sanitizeAppShortcut(
+  shortcut: HotkeyCombo | null | undefined,
+): HotkeyCombo | null {
+  if (!shortcut) return null;
+  return isValidAppShortcutCombo(shortcut) ? shortcut : null;
 }
 
 const NAMED_KEY_LABELS: Record<string, string> = {

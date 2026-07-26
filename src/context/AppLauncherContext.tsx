@@ -18,7 +18,7 @@ import {
   type LauncherLayoutMode,
   type ManualAppEntry,
 } from "../types/appLauncher";
-import type { HotkeyCombo } from "../types/hotkey";
+import { combosEqual, sanitizeAppShortcut, type HotkeyCombo } from "../types/hotkey";
 
 type AppLauncherContextValue = {
   apps: LauncherApp[];
@@ -66,7 +66,12 @@ function loadPersistedSettings(): AppLauncherSettings {
     return {
       layoutMode: parsed.layoutMode ?? DEFAULT_APP_LAUNCHER_SETTINGS.layoutMode,
       manualApps: parsed.manualApps ?? [],
-      overrides: (parsed.overrides ?? []).filter((o) => manualPaths.has(o.path)),
+      overrides: (parsed.overrides ?? [])
+        .filter((o) => manualPaths.has(o.path))
+        .map((o) => ({
+          ...o,
+          shortcut: sanitizeAppShortcut(o.shortcut),
+        })),
       filterSettings: {
         ...DEFAULT_APP_LAUNCHER_SETTINGS.filterSettings,
         ...parsed.filterSettings,
@@ -165,10 +170,28 @@ export function AppLauncherProvider({ children }: { children: ReactNode }) {
 
   const setAppShortcut = useCallback(
     (path: string, shortcut: HotkeyCombo | null) => {
-      setPersisted((prev) => ({
-        ...prev,
-        overrides: upsertOverride(prev.overrides, path, { shortcut }),
-      }));
+      const nextShortcut = sanitizeAppShortcut(shortcut);
+      setPersisted((prev) => {
+        let overrides = prev.overrides;
+        if (nextShortcut) {
+          overrides = overrides.map((override) => {
+            if (
+              override.path !== path &&
+              override.shortcut &&
+              combosEqual(override.shortcut, nextShortcut)
+            ) {
+              return { ...override, shortcut: null };
+            }
+            return override;
+          });
+        }
+        return {
+          ...prev,
+          overrides: upsertOverride(overrides, path, {
+            shortcut: nextShortcut,
+          }),
+        };
+      });
     },
     [],
   );
