@@ -19,6 +19,7 @@ import {
   combosEqual,
   hasChordModifier,
   isModifierCode,
+  isValidAppShortcutCombo,
 } from "../../types/hotkey";
 import {
   panelMaxWidth,
@@ -118,13 +119,15 @@ export function CommandDeckPanel() {
     (event: KeyboardEvent | React.KeyboardEvent): boolean => {
       if (view === "settings") return false;
       if (isRecording) return false;
+      if (event.repeat) return false;
       if (event.defaultPrevented) return false;
       if (isEditableShortcutBlocked(event.target)) return false;
       if (isModifierCode(event.code)) return false;
 
       const combo = comboFromEvent(event);
-      // Need Ctrl/Meta/Alt — Shift-only would steal capital letters in search.
-      if (!hasChordModifier(combo)) return false;
+      if (!isValidAppShortcutCombo(combo)) return false;
+      // Bare digits/F-keys must not steal typing once the search has content.
+      if (!hasChordModifier(combo) && query.length > 0) return false;
 
       const matched = apps.find(
         (a) => a.shortcut && combosEqual(a.shortcut, combo),
@@ -135,7 +138,7 @@ export function CommandDeckPanel() {
       void handleLaunch(matched);
       return true;
     },
-    [apps, handleLaunch, isEditableShortcutBlocked, isRecording, view],
+    [apps, handleLaunch, isEditableShortcutBlocked, isRecording, query, view],
   );
 
   useEffect(() => {

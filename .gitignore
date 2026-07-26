@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Cursor: keep project rules + spotlight skill; ignore bulk-installed skills
+.cursor/skills/*
+!.cursor/skills/spotlight-architecture/

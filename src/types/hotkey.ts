@@ -67,11 +67,50 @@ export function hasChordModifier(combo: HotkeyCombo): boolean {
   return combo.ctrlKey || combo.metaKey || combo.altKey;
 }
 
-export function isValidAppShortcutCombo(combo: HotkeyCombo): boolean {
-  return hasChordModifier(combo) && !isReservedAppShortcutCode(combo.code);
+/** Single key with no modifiers (e.g. Digit1). */
+export function isBareAppShortcut(combo: HotkeyCombo): boolean {
+  return (
+    !combo.ctrlKey &&
+    !combo.metaKey &&
+    !combo.altKey &&
+    !combo.shiftKey
+  );
 }
 
-/** Drop bare-key / Shift-only / reserved combos from persisted shortcuts. */
+/**
+ * Bare letter keys would steal search typing; only digits / numpad / F-keys
+ * are allowed without Ctrl/Meta/Alt.
+ */
+export function isAllowedBareAppShortcutCode(code: string): boolean {
+  return /^(Digit\d|Numpad\d|F\d{1,2})$/.test(code);
+}
+
+/**
+ * App shortcuts may be a chord (Ctrl/Meta/Alt + key) or a bare digit/F-key.
+ * Letters, Shift-only, and reserved navigation keys are rejected.
+ */
+export function isValidAppShortcutCombo(combo: HotkeyCombo): boolean {
+  if (isReservedAppShortcutCode(combo.code)) return false;
+  if (hasChordModifier(combo)) return true;
+  return isBareAppShortcut(combo) && isAllowedBareAppShortcutCode(combo.code);
+}
+
+/** Why a combo cannot be an app shortcut, or null if valid. */
+export function appShortcutRejectReason(combo: HotkeyCombo): string | null {
+  if (isValidAppShortcutCombo(combo)) return null;
+  if (isReservedAppShortcutCode(combo.code)) {
+    return "Клавиша зарезервирована";
+  }
+  if (combo.shiftKey && !hasChordModifier(combo)) {
+    return "Shift+клавиша недоступна";
+  }
+  if (isBareAppShortcut(combo)) {
+    return "Нужна цифра, F-клавиша или Ctrl/⌘/Alt + клавиша";
+  }
+  return "Недопустимая комбинация";
+}
+
+/** Drop invalid combos from persisted shortcuts. */
 export function sanitizeAppShortcut(
   shortcut: HotkeyCombo | null | undefined,
 ): HotkeyCombo | null {

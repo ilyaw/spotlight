@@ -3,13 +3,12 @@ import { RotateCcw } from "lucide-react";
 import { useAppLauncher } from "../../../context/AppLauncherContext";
 import { useHotkey } from "../../../context/HotkeyContext";
 import {
+  appShortcutRejectReason,
   comboFromEvent,
   comboToDisplay,
   DEFAULT_HOTKEY,
-  hasChordModifier,
   hasModifier,
   isModifierCode,
-  isReservedAppShortcutCode,
 } from "../../../types/hotkey";
 import { isMacPlatform } from "../../../lib/platform";
 
@@ -19,6 +18,7 @@ export function ShortcutManagerSection() {
     useHotkey();
   const [recordingPath, setRecordingPath] = useState<string | null>(null);
   const [recordingToggle, setRecordingToggle] = useState(false);
+  const [recordingHint, setRecordingHint] = useState<string | null>(null);
   const isMac = isMacPlatform();
 
   useEffect(() => {
@@ -27,6 +27,7 @@ export function ShortcutManagerSection() {
     const stopRecording = () => {
       setRecordingPath(null);
       setRecordingToggle(false);
+      setRecordingHint(null);
       setHotkeyRecording(false);
     };
 
@@ -39,17 +40,23 @@ export function ShortcutManagerSection() {
         return;
       }
 
-      if (isModifierCode(event.code)) return;
+      if (event.repeat || isModifierCode(event.code)) return;
 
       const combo = comboFromEvent(event);
 
       if (recordingToggle) {
-        if (!hasModifier(combo)) return;
+        if (!hasModifier(combo)) {
+          setRecordingHint("Нужна комбинация с Ctrl / ⌘ / Alt / Shift");
+          return;
+        }
         setHotkey(combo);
         stopRecording();
       } else if (recordingPath) {
-        if (isReservedAppShortcutCode(event.code)) return;
-        if (!hasChordModifier(combo)) return;
+        const reason = appShortcutRejectReason(combo);
+        if (reason) {
+          setRecordingHint(reason);
+          return;
+        }
         setAppShortcut(recordingPath, combo);
         stopRecording();
       }
@@ -68,6 +75,20 @@ export function ShortcutManagerSection() {
     setHotkeyRecording,
   ]);
 
+  const startToggleRecording = () => {
+    setHotkeyRecording(true);
+    setRecordingPath(null);
+    setRecordingHint(null);
+    setRecordingToggle(true);
+  };
+
+  const startAppRecording = (path: string) => {
+    setHotkeyRecording(true);
+    setRecordingToggle(false);
+    setRecordingHint(null);
+    setRecordingPath(path);
+  };
+
   return (
     <section className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden">
       <h3 className="shrink-0 text-[11px] font-semibold tracking-wider text-[var(--color-deck-muted)] uppercase">
@@ -81,11 +102,7 @@ export function ShortcutManagerSection() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => {
-              setHotkeyRecording(true);
-              setRecordingPath(null);
-              setRecordingToggle(true);
-            }}
+            onClick={startToggleRecording}
             className={`font-mono-deck flex h-9 flex-1 items-center justify-center rounded-lg px-3 text-xs transition-colors ${
               recordingToggle
                 ? "bg-[var(--color-deck-accent)]/20 text-[var(--color-deck-accent)] ring-1 ring-[var(--color-deck-accent)]/40"
@@ -110,6 +127,9 @@ export function ShortcutManagerSection() {
             Ошибка регистрации: {error}
           </p>
         )}
+        {recordingToggle && recordingHint && (
+          <p className="text-[10px] text-amber-400">{recordingHint}</p>
+        )}
         <p className="text-[10px] text-[var(--color-deck-muted)]">
           По умолчанию: {comboToDisplay(DEFAULT_HOTKEY, isMac)}
         </p>
@@ -118,6 +138,9 @@ export function ShortcutManagerSection() {
       <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-hidden">
         <p className="shrink-0 text-xs text-[var(--color-deck-muted)]">
           Шорткаты приложений (внутри окна)
+        </p>
+        <p className="shrink-0 text-[10px] text-[var(--color-deck-muted)]">
+          Цифра / F-клавиша или Ctrl/⌘/Alt + клавиша
         </p>
         {apps.length === 0 ? (
           <p className="text-[10px] text-[var(--color-deck-muted)]">
@@ -145,11 +168,7 @@ export function ShortcutManagerSection() {
                   </span>
                   <button
                     type="button"
-                    onClick={() => {
-                      setHotkeyRecording(true);
-                      setRecordingToggle(false);
-                      setRecordingPath(app.path);
-                    }}
+                    onClick={() => startAppRecording(app.path)}
                     className={`font-mono-deck rounded-lg px-2.5 py-1.5 text-[10px] transition-colors ${
                       isRecording
                         ? "bg-[var(--color-deck-accent)]/20 text-[var(--color-deck-accent)] ring-1 ring-[var(--color-deck-accent)]/40"
@@ -157,7 +176,7 @@ export function ShortcutManagerSection() {
                     }`}
                   >
                     {isRecording
-                      ? "Ctrl/⌘/Alt + клавиша…"
+                      ? "Цифра / F… или Ctrl/⌘/Alt+…"
                       : app.shortcut
                         ? comboToDisplay(app.shortcut, isMac)
                         : "Назначить"}
@@ -176,6 +195,9 @@ export function ShortcutManagerSection() {
               );
             })}
           </div>
+        )}
+        {recordingPath && recordingHint && (
+          <p className="shrink-0 text-[10px] text-amber-400">{recordingHint}</p>
         )}
       </div>
     </section>
