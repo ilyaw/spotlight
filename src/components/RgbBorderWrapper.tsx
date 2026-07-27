@@ -1,7 +1,10 @@
 import { type CSSProperties, type ReactNode, useMemo } from "react";
 import { useRgbEffect } from "../context/RgbEffectContext";
 import {
+  buildRgbGradientCss,
   glowVars,
+  gradientKindForPreset,
+  normalizeRgbGradientColors,
   speedToDuration,
   type RgbEffectTarget,
 } from "../types/rgbEffect";
@@ -36,18 +39,22 @@ export function RgbBorderWrapper({
 
   const cssVars = useMemo(() => {
     const glow = glowVars(glowIntensity);
+    const colors = normalizeRgbGradientColors(gradient.colors);
+    const kind = gradientKindForPreset(preset);
     return {
       "--rgb-thickness": `${thickness}px`,
       "--rgb-duration": speedToDuration(speed, preset),
-      "--rgb-color-1": gradient.colors[0],
-      "--rgb-color-2": gradient.colors[1],
-      "--rgb-color-3": gradient.colors[2],
+      "--rgb-color-1": colors[0],
+      "--rgb-color-2": colors[1] ?? colors[0],
+      "--rgb-gradient": buildRgbGradientCss(
+        { angle: gradient.angle, colors },
+        kind,
+      ),
       "--gradient-angle": `${gradient.angle}deg`,
       "--rgb-glow-blur": glow.blur,
       "--rgb-glow-opacity": glow.opacity,
       "--rgb-glow-near-alpha": glow.nearAlpha,
       "--rgb-glow-far-alpha": glow.farAlpha,
-      "--ambient-opacity": glow.ambientOpacity,
     } as CSSProperties;
   }, [thickness, preset, speed, glowIntensity, gradient]);
 

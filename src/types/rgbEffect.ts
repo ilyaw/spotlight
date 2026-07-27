@@ -1,3 +1,5 @@
+import { sanitizeCssColor } from "../lib/cssColor";
+
 export type RgbPreset =
   | "static"
   | "two-color"
@@ -19,8 +21,68 @@ export type RgbEffectTarget = "full-panel";
 
 export type RgbGradient = {
   angle: number;
-  colors: [string, string, string];
+  /** 2–6 color stops (hex or CSS color). */
+  colors: string[];
 };
+
+const DEFAULT_RGB_COLORS = ["#ff006e", "#8338ec", "#3a86ff"];
+
+export function normalizeRgbGradientColors(colors: unknown): string[] {
+  const list = Array.isArray(colors)
+    ? colors
+        .filter((c): c is string => typeof c === "string" && c.length > 0)
+        .map((c, i) =>
+          sanitizeCssColor(c, DEFAULT_RGB_COLORS[i % DEFAULT_RGB_COLORS.length]!),
+        )
+    : [];
+  if (list.length >= 2) return list.slice(0, 6);
+  if (list.length === 1) return [list[0], list[0]];
+  return [...DEFAULT_RGB_COLORS];
+}
+
+/** Build CSS gradient value for border / ambient layers. */
+export function buildRgbGradientCss(
+  gradient: RgbGradient,
+  kind: "linear" | "conic" | "conic-loop" | "linear-loop",
+): string {
+  const stops = normalizeRgbGradientColors(gradient.colors);
+  const joined = stops.join(", ");
+  const loopJoined = [...stops, stops[0]].join(", ");
+
+  switch (kind) {
+    case "linear":
+      return `linear-gradient(${gradient.angle}deg, ${joined})`;
+    case "linear-loop":
+      return `linear-gradient(${gradient.angle}deg, ${loopJoined})`;
+    case "conic":
+      // Angle must stay a CSS var so rgb-spin keyframes can rotate the border.
+      return `conic-gradient(from var(--gradient-angle), ${joined})`;
+    case "conic-loop":
+      return `conic-gradient(from var(--gradient-angle), ${loopJoined})`;
+  }
+}
+
+export function gradientKindForPreset(
+  preset: RgbPreset,
+): "linear" | "conic" | "conic-loop" | "linear-loop" {
+  switch (preset) {
+    case "static":
+      return "linear";
+    case "two-color":
+      return "conic-loop";
+    case "rainbow":
+    case "sunset":
+    case "ocean":
+    case "lava":
+    case "aurora":
+      return "linear-loop";
+    case "cyberpunk":
+    case "toxic":
+    case "synthwave":
+    case "neon-pulse":
+      return "conic-loop";
+  }
+}
 
 export type RgbPresetMeta = {
   label: string;
@@ -170,12 +232,60 @@ export const DEFAULT_RGB_SETTINGS: RgbEffectSettings = {
 
 export const RGB_STORAGE_KEY = "spotlight-rgb-settings";
 
+export function migrateRgbSettings(
+  parsed: Partial<RgbEffectSettings>,
+): RgbEffectSettings {
+  const presetMap: Record<string, RgbPreset> = {
+    cyberpunk: "cyberpunk",
+    "rainbow-wave": "rainbow",
+    "neon-pulse": "neon-pulse",
+    static: "static",
+    "two-color": "two-color",
+    rainbow: "rainbow",
+    sunset: "sunset",
+    ocean: "ocean",
+    toxic: "toxic",
+    lava: "lava",
+    aurora: "aurora",
+    synthwave: "synthwave",
+  };
+
+  const rawPreset = parsed.preset as string | undefined;
+  const preset = rawPreset
+    ? (presetMap[rawPreset] ??
+      (rawPreset in RGB_PRESETS ? (rawPreset as RgbPreset) : "rainbow"))
+    : DEFAULT_RGB_SETTINGS.preset;
+
+  return {
+    ...DEFAULT_RGB_SETTINGS,
+    ...parsed,
+    preset,
+    target: "full-panel",
+    direction: parsed.direction ?? DEFAULT_RGB_SETTINGS.direction,
+    glowIntensity: parsed.glowIntensity ?? DEFAULT_RGB_SETTINGS.glowIntensity,
+    ambientBackground:
+      parsed.ambientBackground ?? DEFAULT_RGB_SETTINGS.ambientBackground,
+    gradient: {
+      ...DEFAULT_RGB_SETTINGS.gradient,
+      ...parsed.gradient,
+      angle:
+        typeof parsed.gradient?.angle === "number"
+          ? parsed.gradient.angle
+          : getPresetGradient(preset).angle,
+      colors: normalizeRgbGradientColors(
+        parsed.gradient?.colors ?? getPresetGradient(preset).colors,
+      ),
+    },
+  };
+}
+
 export function getPresetMeta(preset: RgbPreset): RgbPresetMeta {
   return RGB_PRESETS[preset];
 }
 
 export function getPresetGradient(preset: RgbPreset): RgbGradient {
-  return RGB_PRESETS[preset].gradient;
+  const g = RGB_PRESETS[preset].gradient;
+  return { angle: g.angle, colors: [...g.colors] };
 }
 
 export function isPresetAnimated(preset: RgbPreset): boolean {

@@ -10,16 +10,16 @@ import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-    <ThemeProvider>
-      <SystemBehaviorProvider>
-        <RgbEffectProvider>
+    <RgbEffectProvider>
+      <ThemeProvider>
+        <SystemBehaviorProvider>
           <HotkeyProvider>
             <AppLauncherProvider>
               <App />
             </AppLauncherProvider>
           </HotkeyProvider>
-        </RgbEffectProvider>
-      </SystemBehaviorProvider>
-    </ThemeProvider>
+        </SystemBehaviorProvider>
+      </ThemeProvider>
+    </RgbEffectProvider>
   </React.StrictMode>,
 );

@@ -1,20 +1,58 @@
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
+import { Plus } from "lucide-react";
 import { useRgbEffect } from "../../../context/RgbEffectContext";
-import { useTheme } from "../../../context/ThemeContext";
+import {
+  createEmptyDraft,
+  useTheme,
+} from "../../../context/ThemeContext";
+import {
+  clampGradientColors,
+  type CustomTheme,
+} from "../../../types/theme";
 import {
   isPresetAnimated,
   RGB_PRESET_LIST,
   RGB_PRESETS,
   type RgbGradientDirection,
 } from "../../../types/rgbEffect";
+import {
+  ThemeEditorForm,
+  type ThemeEditorDraft,
+} from "./theme/ThemeEditorForm";
+import { ThemeLibraryGrid } from "./theme/ThemeLibraryGrid";
 
 const DIRECTIONS: { id: RgbGradientDirection; label: string }[] = [
   { id: "clockwise", label: "По часовой стрелке" },
   { id: "counter-clockwise", label: "Против часовой" },
 ];
 
+type EditorState =
+  | { mode: "closed" }
+  | { mode: "create"; draft: ThemeEditorDraft }
+  | { mode: "edit"; id: string; draft: ThemeEditorDraft };
+
+function themeToDraft(theme: CustomTheme): ThemeEditorDraft {
+  return {
+    name: theme.name,
+    baseMode: theme.baseMode,
+    colors: { ...theme.colors },
+    gradient: {
+      angle: theme.gradient.angle,
+      colors: [...theme.gradient.colors],
+    },
+  };
+}
+
 export function AppearanceSection() {
-  const { theme, setTheme } = useTheme();
+  const {
+    theme,
+    activeId,
+    customThemes,
+    setActiveTheme,
+    createTheme,
+    updateTheme,
+    deleteTheme,
+  } = useTheme();
   const {
     settings,
     setEnabled,
@@ -26,6 +64,8 @@ export function AppearanceSection() {
     setGlowIntensity,
   } = useRgbEffect();
 
+  const [editor, setEditor] = useState<EditorState>({ mode: "closed" });
+
   const {
     enabled,
     ambientBackground,
@@ -34,33 +74,89 @@ export function AppearanceSection() {
     speed,
     thickness,
     glowIntensity,
+    gradient,
   } = settings;
 
   const animated = isPresetAnimated(preset);
-  const previewColors = RGB_PRESETS[preset].gradient.colors;
+  const previewColors = gradient.colors;
+
+  const openCreate = () => {
+    setEditor({
+      mode: "create",
+      draft: createEmptyDraft(theme, {
+        angle: gradient.angle,
+        colors: clampGradientColors(gradient.colors),
+      }),
+    });
+  };
+
+  const openEdit = (custom: CustomTheme) => {
+    setEditor({
+      mode: "edit",
+      id: custom.id,
+      draft: themeToDraft(custom),
+    });
+  };
+
+  const handleSave = () => {
+    if (editor.mode === "closed") return;
+    const draft = {
+      ...editor.draft,
+      name: editor.draft.name.trim() || "Без названия",
+      gradient: {
+        angle: editor.draft.gradient.angle,
+        colors: clampGradientColors(editor.draft.gradient.colors),
+      },
+    };
+    if (editor.mode === "create") {
+      createTheme(draft);
+    } else {
+      updateTheme(editor.id, draft);
+    }
+    setEditor({ mode: "closed" });
+  };
+
+  const handleDelete = () => {
+    if (editor.mode !== "edit") return;
+    deleteTheme(editor.id);
+    setEditor({ mode: "closed" });
+  };
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-4 overflow-y-auto">
       <h3 className="text-[11px] font-semibold tracking-wider text-[var(--color-deck-muted)] uppercase">
         Тема оформления
       </h3>
 
-      <div className="flex gap-1 rounded-lg deck-surface p-1">
-        {(["dark", "light"] as const).map((mode) => (
-          <button
-            key={mode}
-            type="button"
-            onClick={() => setTheme(mode)}
-            className={`flex-1 rounded-md py-1.5 text-xs transition-colors ${
-              theme === mode
-                ? "bg-[var(--color-deck-surface-hover)] text-[var(--color-deck-text)]"
-                : "text-[var(--color-deck-muted)] hover:text-[var(--color-deck-text)]"
-            }`}
-          >
-            {mode === "dark" ? "Тёмная" : "Светлая"}
-          </button>
-        ))}
-      </div>
+      <ThemeLibraryGrid
+        activeId={activeId}
+        customThemes={customThemes}
+        onSelect={setActiveTheme}
+        onEdit={openEdit}
+      />
+
+      {editor.mode === "closed" ? (
+        <button
+          type="button"
+          onClick={openCreate}
+          className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed deck-border py-2 text-xs text-[var(--color-deck-muted)] transition-colors duration-200 hover:border-[var(--color-deck-accent)]/50 hover:bg-[var(--color-deck-surface-hover)] hover:text-[var(--color-deck-text)]"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Создать тему
+        </button>
+      ) : (
+        <ThemeEditorForm
+          title={
+            editor.mode === "create" ? "Новая тема" : "Редактирование темы"
+          }
+          draft={editor.draft}
+          onChange={(draft) => setEditor({ ...editor, draft })}
+          onSave={handleSave}
+          onCancel={() => setEditor({ mode: "closed" })}
+          onDelete={editor.mode === "edit" ? handleDelete : undefined}
+          saveLabel={editor.mode === "create" ? "Создать" : "Сохранить"}
+        />
+      )}
 
       <h3 className="text-[11px] font-semibold tracking-wider text-[var(--color-deck-muted)] uppercase">
         Подсветка по контуру

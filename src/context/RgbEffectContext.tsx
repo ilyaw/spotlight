@@ -10,7 +10,7 @@ import {
 import {
   DEFAULT_RGB_SETTINGS,
   getPresetGradient,
-  RGB_PRESETS,
+  migrateRgbSettings,
   RGB_STORAGE_KEY,
   type RgbEffectSettings,
   type RgbGradient,
@@ -34,52 +34,13 @@ type RgbEffectContextValue = {
 
 const RgbEffectContext = createContext<RgbEffectContextValue | null>(null);
 
-function migrateSettings(parsed: Partial<RgbEffectSettings>): RgbEffectSettings {
-  const presetMap: Record<string, RgbPreset> = {
-    cyberpunk: "cyberpunk",
-    "rainbow-wave": "rainbow",
-    "neon-pulse": "neon-pulse",
-    static: "static",
-    "two-color": "two-color",
-    rainbow: "rainbow",
-    sunset: "sunset",
-    ocean: "ocean",
-    toxic: "toxic",
-    lava: "lava",
-    aurora: "aurora",
-    synthwave: "synthwave",
-  };
-
-  const rawPreset = parsed.preset as string | undefined;
-  const preset = rawPreset
-    ? (presetMap[rawPreset] ??
-      (rawPreset in RGB_PRESETS ? (rawPreset as RgbPreset) : "rainbow"))
-    : DEFAULT_RGB_SETTINGS.preset;
-
-  return {
-    ...DEFAULT_RGB_SETTINGS,
-    ...parsed,
-    preset,
-    target: "full-panel",
-    direction: parsed.direction ?? DEFAULT_RGB_SETTINGS.direction,
-    glowIntensity: parsed.glowIntensity ?? DEFAULT_RGB_SETTINGS.glowIntensity,
-    ambientBackground:
-      parsed.ambientBackground ?? DEFAULT_RGB_SETTINGS.ambientBackground,
-    gradient: {
-      ...DEFAULT_RGB_SETTINGS.gradient,
-      ...parsed.gradient,
-      colors: parsed.gradient?.colors ?? getPresetGradient(preset).colors,
-    },
-  };
-}
-
 function loadSettings(): RgbEffectSettings {
   try {
     const raw = localStorage.getItem(RGB_STORAGE_KEY);
     if (!raw) return DEFAULT_RGB_SETTINGS;
 
     const parsed = JSON.parse(raw) as Partial<RgbEffectSettings>;
-    return migrateSettings(parsed);
+    return migrateRgbSettings(parsed);
   } catch {
     return DEFAULT_RGB_SETTINGS;
   }
